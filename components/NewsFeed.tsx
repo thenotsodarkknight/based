@@ -21,19 +21,15 @@ const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
     }
 
     return (
-        <div className="h-screen w-full">
+        <div className="h-screen w-full pt-16"> {/* Adjust padding top to match navbar height */}
             <Swiper
                 direction="vertical"
                 pagination={{ clickable: true }}
                 mousewheel={true}
-                style={{ height: "100%" }}
+                style={{ height: "calc(100% - 4rem)" }} // Adjust height to account for navbar
             >
                 {topics.map((topic, idx) => (
                     <SwiperSlide key={idx}>
-                        {/*
-              If a topic's content overflows and requires multiple cards,
-              wrap the cards in a nested horizontal Swiper here.
-            */}
                         <NewsCard topic={topic} />
                     </SwiperSlide>
                 ))}
