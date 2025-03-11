@@ -1,9 +1,7 @@
 export interface NewsTopic {
     topic: string;
-    summary: string;
+    summary: string; // Neutral summary based on all links
     leftLinks: string[];
     rightLinks: string[];
     neutralLinks: string[];
-    leaning: string; // Added for bias analysis
-    explanation: string; // Added for bias explanation
 }

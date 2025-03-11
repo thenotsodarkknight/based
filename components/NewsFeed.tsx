@@ -31,7 +31,7 @@ const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
                 slidesPerView={1}
                 className="h-[90vh] w-full"
                 mousewheel={true}
-                touchRatio={1.5} // Enhanced touch sensitivity for mobile
+                touchRatio={1.5}
                 touchReleaseOnEdges={true}
                 effect="slide"
             >

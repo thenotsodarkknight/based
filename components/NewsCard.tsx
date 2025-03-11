@@ -7,18 +7,65 @@ interface Props {
 
 const NewsCard: React.FC<Props> = ({ topic }) => {
     return (
-        <div className="flex flex-col justify-between h-[90vh] w-full bg-white/10 dark:bg-gray-900/80 backdrop-blur-md rounded-2xl shadow-lg p-4 mx-auto transform transition-all duration-300 hover:scale-105 animate-fadeIn md:max-w-md">
-            <div className="space-y-4">
-                <h2 className="text-2xl font-bold text-textPrimary leading-tight line-clamp-2">{topic.topic}</h2>
-                <p className="text-textSecondary text-sm leading-relaxed line-clamp-4">{topic.summary}</p>
-                <div>
-                    <h3 className="text-lg font-semibold text-textPrimary">Analysis</h3>
-                    <p className="text-textSecondary text-sm">
-                        <strong>Leaning:</strong> {topic.leaning}
-                    </p>
-                    <p className="text-textSecondary text-sm">
-                        <strong>Explanation:</strong> {topic.explanation}
-                    </p>
+        <div className="flex flex-col justify-between h-[90vh] w-full bg-white/20 backdrop-blur-md rounded-xl shadow-xl p-3 mx-auto transform transition-all duration-300 hover:shadow-2xl animate-fadeIn md:max-w-md">
+            <div className="space-y-3">
+                <h2 className="text-xl font-semibold text-textPrimary line-clamp-1">{topic.topic}</h2>
+                <p className="text-textSecondary text-xs leading-relaxed line-clamp-4">{topic.summary}</p>
+                <div className="space-y-2">
+                    <h3 className="text-base font-medium text-textPrimary">Sources by Bias</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                        {topic.leftLinks.length > 0 && (
+                            <div className="bg-leftBias/10 p-2 rounded-lg">
+                                <h4 className="text-leftBias font-medium text-sm">Left-Leaning</h4>
+                                {topic.leftLinks.map((link, idx) => (
+                                    <a
+                                        key={idx}
+                                        href={link}
+                                        className="text-leftBias text-xs opacity-80 hover:opacity-100 transition-opacity block truncate"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        Source {idx + 1}
+                                    </a>
+                                ))}
+                            </div>
+                        )}
+                        {topic.rightLinks.length > 0 && (
+                            <div className="bg-rightBias/10 p-2 rounded-lg">
+                                <h4 className="text-rightBias font-medium text-sm">Right-Leaning</h4>
+                                {topic.rightLinks.map((link, idx) => (
+                                    <a
+                                        key={idx}
+                                        href={link}
+                                        className="text-rightBias text-xs opacity-80 hover:opacity-100 transition-opacity block truncate"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        Source {idx + 1}
+                                    </a>
+                                ))}
+                            </div>
+                        )}
+                        {topic.neutralLinks.length > 0 && (
+                            <div className="bg-neutralBias/10 p-2 rounded-lg">
+                                <h4 className="text-neutralBias font-medium text-sm">Neutral</h4>
+                                {topic.neutralLinks.map((link, idx) => (
+                                    <a
+                                        key={idx}
+                                        href={link}
+                                        className="text-neutralBias text-xs opacity-80 hover:opacity-100 transition-opacity block truncate"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        Source {idx + 1}
+                                    </a>
+                                ))}
+                            </div>
+                        )}
+                        {topic.leftLinks.length === 0 && topic.rightLinks.length === 0 && topic.neutralLinks.length === 0 && (
+                            <p className="text-textSecondary text-xs">No sources available.</p>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

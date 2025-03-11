@@ -6,7 +6,6 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Cluster articles by keywords (initial clustering before AI refinement)
 function clusterArticlesByTopic(articles: any[]): { [key: string]: any[] } {
     const clusters: { [key: string]: any[] } = {};
 
@@ -32,7 +31,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         const { vibe = "" } = req.query;
 
-        // Fetch news from NewsAPI
         const newsResponse = await axios.get("https://newsapi.org/v2/everything", {
             params: {
                 apiKey: process.env.NEWSAPI_KEY,
@@ -45,10 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const articles = newsResponse.data.articles;
 
-        // Initial clustering by keywords
         const clusteredArticles = clusterArticlesByTopic(articles);
 
-        // Process each cluster to generate AI-based topic names, summaries, and analysis
         const newsTopics: NewsTopic[] = await Promise.all(
             Object.entries(clusteredArticles).map(async ([tempTopic, topicArticles]) => {
                 const combinedContent = topicArticles
@@ -81,14 +77,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     }
                 } catch (error) { }
 
-                // Generate summary if not cached
+                // Generate a neutral summary based on all links' content
                 if (!summary) {
                     const summaryRes = await openai.chat.completions.create({
                         model: "gpt-4o",
                         messages: [
                             {
                                 role: "user",
-                                content: `Generate a neutral summary for the following news topic based on these articles: ${combinedContent}`,
+                                content: `Generate a neutral summary (50-100 words) of the news topic based on the following combined content from multiple sources: ${combinedContent}. Focus on providing an unbiased overview of the topic without favoring any perspective.`,
                             },
                         ],
                     });
@@ -101,27 +97,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     });
                 }
 
-                // Analyze the topic for bias
-                const analysisRes = await openai.chat.completions.create({
-                    model: "gpt-4o",
-                    messages: [
-                        {
-                            role: "user",
-                            content: `Classify the overall political leaning of this news topic as left-leaning, right-leaning, or neutral, and provide a brief explanation: ${summary}`,
-                        },
-                    ],
+                // Classify bias for each article and categorize links
+                const articlesWithBias = await Promise.all(
+                    topicArticles.map(async (article: any) => {
+                        const content = article.content || article.description || article.title;
+                        const biasRes = await openai.chat.completions.create({
+                            model: "gpt-4o",
+                            messages: [
+                                {
+                                    role: "user",
+                                    content: `Classify the political leaning of this article as left-leaning, right-leaning, or neutral: ${content}`,
+                                },
+                            ],
+                        });
+                        const bias = biasRes.choices[0].message.content.toLowerCase();
+                        return {
+                            url: article.url,
+                            bias,
+                        };
+                    })
+                );
+
+                const leftLinks: string[] = [];
+                const rightLinks: string[] = [];
+                const neutralLinks: string[] = [];
+
+                articlesWithBias.forEach((article) => {
+                    if (article.bias.includes("left")) {
+                        leftLinks.push(article.url);
+                    } else if (article.bias.includes("right")) {
+                        rightLinks.push(article.url);
+                    } else {
+                        neutralLinks.push(article.url);
+                    }
                 });
-                const result = analysisRes.choices[0].message.content;
-                const [leaning, ...explanation] = result.split("\n");
 
                 return {
                     topic,
                     summary,
-                    leftLinks: [], // Simplified for now
-                    rightLinks: [],
-                    neutralLinks: [],
-                    leaning: leaning || "Unknown",
-                    explanation: explanation.join("\n") || "No explanation available",
+                    leftLinks,
+                    rightLinks,
+                    neutralLinks,
                 };
             })
         );
