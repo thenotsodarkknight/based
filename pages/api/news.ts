@@ -7,12 +7,11 @@ import { NewsTopic, BlobMetadata, NewsItem } from "../../types/news";
 import { put, list } from "@vercel/blob";
 import { z } from "zod";
 
-
 // Define the output structure type using Zod
 const AIOutputSchema = z.object({
     heading: z.string().describe("A descriptive heading for the news event related to the article, no length limit"),
     summary: z.string().describe("A neutral summary of the news event behind the article, as detailed as desired, no length limit"),
-    bias: z.string().describe("A single keyword bias tag (e.g., neutral, left-leaning, sensationalist)"),
+    bias: z.string().describe("A single keyword bias tag (e.g., neutral, left-leaning, right-leaning, sensationalist)"),
     biasExplanation: z.string().describe("An explanation of the article writer's perspective or biases, based on tone, word choice, and focus, no length limit"),
 });
 
@@ -25,7 +24,6 @@ const newsapiKey = process.env.NEWSAPI_KEY;
 
 let apiCallCount = 0;
 const MAX_API_CALLS = 300;
-const MAX_RETRIES = 2; // Retries for LLM failures
 const CACHE_DURATION = 24 * 60 * 60 * 1000;
 const MAX_TOTAL_TIME_MS = 5 * 60 * 1000;
 
@@ -36,86 +34,70 @@ const AI_MODELS = {
 const DEFAULT_MODEL = "gpt-4o-mini";
 
 // Initialize LLMs with higher max_tokens
-const openai = new OpenAI({ apiKey: openaiApiKey, temperature: 0.5, maxTokens: 600 }); // Lower temperature, higher tokens
+const openai = new OpenAI({ apiKey: openaiApiKey, temperature: 0.5, maxTokens: 600 });
 const anthropic = new ChatAnthropic({ apiKey: anthropicApiKey, temperature: 0.5, maxTokens: 600 });
 
 async function safeAICall(
     model: string,
     prompt: string,
     article: any,
-    timeoutMs: number = 30000,
-    retryCount: number = 0
+    timeoutMs: number = 30000
 ): Promise<AIOutput> {
-    if (apiCallCount >= MAX_API_CALLS) {
-        console.warn(`API call limit (${MAX_API_CALLS}) reached, using fallback`);
-        const content = article.content || article.description || article.title || "No content available";
-        return {
-            heading: article.title || "News Event",
-            summary: content || "No summary available from the article content.",
-            bias: "neutral",
-            biasExplanation: `The article titled "${article.title || 'unknown'}" appears neutral due to limited processing. The content, starting with "${content.slice(0, 20)}...", focuses on factual reporting without evident editorial slant. The writer avoids strong opinions, aiming to inform rather than persuade. This objective stance is inferred from the available text, constrained by the lack of LLM processing, resulting in a default neutral assessment based on the content's tone and focus.`
-        };
-    }
-    apiCallCount++;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-        let llm = model.startsWith("gpt-") ? openai : anthropic;
-        const response = await llm.invoke(prompt, { signal: controller.signal });
-
-        // Handle different response structures (OpenAI vs. Anthropic)
-        let responseText: string;
-        if (typeof response === 'string') {
-            responseText = response;
-        } else if (Array.isArray(response.content)) {
-            const firstContent = response.content[0];
-            if (firstContent && 'type' in firstContent && firstContent.type === 'text') {
-                responseText = firstContent.text || '';
-            } else {
-                responseText = '';
-            }
-        } else if (typeof response.content === 'string') {
-            responseText = response.content;
-        } else {
-            responseText = '';
-        }
-
-        if (!responseText) {
-            console.error(`No valid response text from model ${model}, using fallback`);
+    // Keep recalling the AI until we get valid output
+    while (true) {
+        if (apiCallCount >= MAX_API_CALLS) {
+            console.warn(`API call limit (${MAX_API_CALLS}) reached, using fallback`);
             const content = article.content || article.description || article.title || "No content available";
             return {
                 heading: article.title || "News Event",
                 summary: content || "No summary available from the article content.",
                 bias: "neutral",
-                biasExplanation: `The article titled "${article.title || 'unknown'}" appears neutral due to limited processing. The content, starting with "${content.slice(0, 20)}...", focuses on factual reporting without evident editorial slant. The writer avoids strong opinions, aiming to inform rather than persuade. This objective stance is inferred from the available text, constrained by the lack of LLM processing, resulting in a default neutral assessment based on the content's tone and focus.`
+                biasExplanation: `The article titled "${article.title || 'unknown'}" appears neutral due to limited processing. The content, starting with "${content.slice(0, 20)}...", focuses on factual reporting without evident editorial slant.`
             };
         }
+        apiCallCount++;
 
-        // Manually parse with Zod
-        const parsedResponse = AIOutputSchema.parse(JSON.parse(responseText));
-        return parsedResponse;
-    } catch (error: any) {
-        console.error(`Error with model ${model}:`, error.message);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-        // Implement retry logic
-        if (retryCount < MAX_RETRIES) {
-            console.log(`Retrying (${retryCount + 1}/${MAX_RETRIES}) with refined prompt...`);
-            const refinedPrompt = `${prompt}\n\nPrevious attempt failed with error: ${error.message}. Ensure the output strictly adheres to the schema: heading (no length limit), summary (no length limit), bias (single keyword), biasExplanation (no length limit).`;
-            return safeAICall(model, refinedPrompt, article, timeoutMs, retryCount + 1);
+        try {
+            let llm = model.startsWith("gpt-") ? openai : anthropic;
+            const response = await llm.invoke(prompt, { signal: controller.signal });
+
+            let responseText = "";
+            if (typeof response === "string") {
+                responseText = response;
+            } else if (Array.isArray(response.content)) {
+                const firstContent = response.content[0];
+                if (firstContent && "type" in firstContent && firstContent.type === "text") {
+                    responseText = firstContent.text || "";
+                }
+            } else if (typeof response.content === "string") {
+                responseText = response.content;
+            }
+
+            if (!responseText) {
+                console.error(`No valid response text from model ${model}, retrying...`);
+                continue;
+            }
+
+            // Extract the JSON substring from the response to avoid extra text/formatting issues
+            const jsonMatch = responseText.match(/{[\s\S]*}/);
+            if (!jsonMatch) {
+                console.error("No valid JSON found in model response, retrying...");
+                continue;
+            }
+            const jsonString = jsonMatch[0];
+            const parsedResponse = AIOutputSchema.parse(JSON.parse(jsonString));
+            return parsedResponse;
+        } catch (error: any) {
+            console.error(`Error with model ${model}:`, error.message);
+            // Append error details to prompt for the next call
+            prompt = `${prompt}\n\nPrevious attempt failed with error: ${error.message}. Ensure the output strictly adheres to the schema: heading (no length limit), summary (no length limit), bias (single keyword), biasExplanation (no length limit).`;
+            // Continue looping to recall the AI
+        } finally {
+            clearTimeout(timeoutId);
         }
-
-        // Fallback using real article data
-        const content = article.content || article.description || article.title || "No content available";
-        return {
-            heading: article.title || "News Event",
-            summary: content || "No summary available from the article content.",
-            bias: "neutral",
-            biasExplanation: `The article titled "${article.title || 'unknown'}" appears neutral due to limited processing. The content, starting with "${content.slice(0, 20)}...", focuses on factual reporting without evident editorial slant. The writer avoids strong opinions, aiming to inform rather than persuade. This objective stance is inferred from the available text, constrained by the lack of LLM processing, resulting in a default neutral assessment based on the content's tone and focus.`
-        };
-    } finally {
-        clearTimeout(timeoutId);
     }
 }
 
@@ -139,38 +121,55 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
 
     const prompt = new PromptTemplate({
         template: `
-            Based on the following content, provide the requested outputs in JSON format. Use the example below as a guide to meet format requirements. There are no length limits for heading, summary, or biasExplanation, but bias must be a single keyword.
+Based on the following content, provide the requested outputs in JSON format. Use the examples below as a guide to meet the format requirements. There are no length limits for heading, summary, or biasExplanation, but bias must be a single keyword.
 
-            - heading: A descriptive heading for the news event related to the article, no length limit.
-            - summary: A neutral summary of the news event behind the article, as detailed as desired, no length limit.
-            - bias: A single keyword bias tag (e.g., neutral, left-leaning, sensationalist).
-            - biasExplanation: An explanation of the article writer's perspective or biases, based on tone, word choice, and focus, no length limit.
+- heading: A descriptive heading for the news event related to the article.
+- summary: A neutral summary of the news event behind the article.
+- bias: A single keyword bias tag (e.g., neutral, left-leaning, right-leaning).
+- biasExplanation: An explanation of the article writer's perspective or biases, based on tone, word choice, and focus.
 
-            Example (for content: "New Tesla Model Y launched with advanced autopilot"):
-            {{
-                "heading": "Tesla Unveils Model Y with Advanced Autopilot Features",
-                "summary": "Tesla has launched the Model Y, an electric SUV equipped with advanced autopilot technology that enhances safety and navigation. The vehicle boasts an improved battery range and a sleek, modern design, appealing to eco-conscious drivers. The launch event emphasized production scalability and introduced new software updates, with industry analysts highlighting its strong market potential. Reception has been largely positive, though some discussions focus on its pricing competitiveness compared to other electric vehicles, as Tesla seeks to solidify its dominance in the EV sector.",
-                "bias": "neutral",
-                "biasExplanation": "The writer maintains a neutral perspective throughout the article, focusing on factual details about the Model Y's features, market reception, and Tesla's goals. The tone is informative and balanced, presenting both the vehicle's strengths, such as advanced technology, and potential challenges, like pricing debates, without favoring one side. The language avoids emotional or sensational phrasing, aiming to educate readers about the launch and its implications in the electric vehicle industry with an objective approach."
-            }}
+Examples:
 
-            Content: {content}
+Neutral Example (for content: "New Tesla Model Y launched with advanced autopilot"):
+{
+  "heading": "Tesla Unveils Model Y with Advanced Autopilot Features",
+  "summary": "Tesla has launched the Model Y, an electric SUV equipped with advanced autopilot technology. The article highlights improved battery range and production scalability, presenting a balanced view without editorializing.",
+  "bias": "neutral",
+  "biasExplanation": "The article maintains a neutral tone, focusing on factual reporting and technological details, without overtly favoring any perspective."
+}
 
-            Output format:
-            {{
-                "heading": "...",
-                "summary": "...",
-                "bias": "...",
-                "biasExplanation": "..."
-            }}
-        `,
+Left-leaning Example (for content: "Government announces new climate policies with a focus on renewable energy and social equity."):
+{
+  "heading": "Government Unveils Progressive Climate Policies",
+  "summary": "The government has introduced a series of climate policies emphasizing renewable energy investments and social equity. The measures are portrayed as transformative for environmental and social reform, though critics raise concerns about economic impacts.",
+  "bias": "left-leaning",
+  "biasExplanation": "The article adopts a left-leaning perspective by emphasizing progressive policy benefits and social justice while downplaying potential economic drawbacks."
+}
+
+Right-leaning Example (for content: "Critics argue that the new tax reforms could hamper business growth and burden middle-class families."):
+{
+  "heading": "Controversy Over New Tax Reforms Raises Business Concerns",
+  "summary": "The new tax reforms have sparked debate among business leaders and economists, with concerns over potential negative impacts on economic growth and middle-class stability. The narrative is critical of the reforms and cautious about government intervention.",
+  "bias": "right-leaning",
+  "biasExplanation": "The article exhibits a right-leaning bias by focusing on the economic risks of the tax reforms and questioning their overall benefits, favoring fiscal conservatism."
+}
+
+Content: {content}
+
+Output format:
+{
+  "heading": "...",
+  "summary": "...",
+  "bias": "...",
+  "biasExplanation": "..."
+}
+    `,
         inputVariables: ["content"],
     });
 
     const results = await Promise.all(
         articles.map(async (article) => {
             const content = article.content || article.description || article.title;
-
             const { heading, summary, bias, biasExplanation } = await safeAICall(
                 model,
                 await prompt.format({ content }),
@@ -183,7 +182,7 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
                 source: {
                     url: article.url,
                     name: article.source.name,
-                    bias: bias.trim(), // Ensure single keyword
+                    bias: bias.trim(),
                     biasExplanation: biasExplanation.trim(),
                 },
                 lastUpdated: article.publishedAt || new Date().toISOString(),
