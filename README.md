@@ -1,5 +1,7 @@
 # based: removing 'i' from biased
-based is an LLM-powered news analysis application that fetches articles from diverse sources, classifies their political leanings (left-leaning, right-leaning, or neutral), and generates balanced summaries. The app presents news in a swipeable card interface, with each card featuring a neutral summary and links to articles categorized by bias. Users can filter news by "vibes" (personas like "Tech Enthusiast" or "Athlete") and click cards to go to the actual article. Based leverages OpenAI, Anthropic, and NewsAPI to deliver a modern, bias-aware news experience.
+based is an LLM-powered news analysis application that fetches articles from diverse sources, classifies their political leanings (left-leaning, right-leaning, or neutral), and generates balanced summaries. The app presents the latest and most popular news in a swipeable card interface, with each card featuring a neutral summary and links to articles categorized by bias. Users can filter news by "vibes" (personas like "Tech Enthusiast" or "Athlete") and click cards to go to the actual article. Based leverages OpenAI, Anthropic, and NewsAPI to deliver a modern, bias-aware news experience.
+
+> Note: This is not meant for production, it's kind of a weekend project.
 
 <div style="display: flex; gap: 10px;">
   <img src="https://github.com/user-attachments/assets/e5ad5519-47cb-4734-ae18-9ec2002ead10" alt="IMG_9660" style="width: 32%;">
