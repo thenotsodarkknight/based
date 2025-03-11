@@ -2,7 +2,6 @@ import { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 import { OpenAI } from "@langchain/openai";
 import { ChatAnthropic } from "@langchain/anthropic";
-import { StructuredOutputParser } from "langchain/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { NewsTopic, BlobMetadata, NewsItem } from "../../types/news";
 import { put, list } from "@vercel/blob";
@@ -11,9 +10,9 @@ import { z } from "zod";
 // Define the output structure type using Zod
 const AIOutputSchema = z.object({
     heading: z.string().min(5).max(10).describe("A concise, descriptive heading (5-10 words) for the news event related to the article"),
-    summary: z.string().min(50).max(100).describe("A neutral summary (50-100 words) of the news event behind the article, without introductory text"),
+    summary: z.string().min(50).max(100).describe("A neutral summary (50-100 words) of the news event behind the article, as detailed as possible within the limit"),
     bias: z.string().min(1).max(3).describe("A strict 1-3 word bias tag (e.g., neutral, left-leaning, sensationalist)"),
-    biasExplanation: z.string().min(50).max(100).describe("A separate, independent explanation (50-100 words) of the bias based on language and content"),
+    biasExplanation: z.string().min(50).max(100).describe("A 50-100 word explanation of the article writer's perspective or biases, based on tone, word choice, and focus"),
 });
 
 // Use Zod inference for AIOutput type
@@ -32,7 +31,7 @@ const AI_MODELS = {
     openai: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-4o-mini"],
     anthropic: ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"],
 };
-const DEFAULT_MODEL = "gpt-4o";
+const DEFAULT_MODEL = "gpt-4o-mini";
 
 // Initialize LLMs with higher max_tokens
 const openai = new OpenAI({ apiKey: openaiApiKey, temperature: 0.7, maxTokens: 500 });
@@ -41,11 +40,19 @@ const anthropic = new ChatAnthropic({ apiKey: anthropicApiKey, temperature: 0.7,
 async function safeAICall(
     model: string,
     prompt: string,
-    parser: StructuredOutputParser<typeof AIOutputSchema>,
-    fallback: () => AIOutput,
+    article: any, // Pass the article to derive fallback values
     timeoutMs: number = 30000
 ): Promise<AIOutput> {
-    if (apiCallCount >= MAX_API_CALLS) return fallback();
+    if (apiCallCount >= MAX_API_CALLS) {
+        console.warn(`API call limit (${MAX_API_CALLS}) reached, using fallback`);
+        const content = article.content || article.description || article.title || "No content available";
+        return {
+            heading: article.title?.split(" ").slice(0, 5).join(" ") || "News Event Title",
+            summary: content.slice(0, 100).padEnd(50, " "), // Use real article content
+            bias: "neutral",
+            biasExplanation: `Due to limited processing, the article's tone appears neutral. The content, primarily ${content.slice(0, 20)}..., focuses on factual reporting without evident editorial slant. The writer avoids strong opinions, aiming to inform rather than persuade, though deeper analysis is constrained by the lack of LLM processing. This reflects a default objective stance based on the available text.`.padEnd(50, " ")
+        };
+    }
     apiCallCount++;
 
     const controller = new AbortController();
@@ -53,8 +60,7 @@ async function safeAICall(
 
     try {
         let llm = model.startsWith("gpt-") ? openai : anthropic;
-        const fullPrompt = parser.getFormatInstructions() + "\n\n" + prompt;
-        const response = await llm.invoke(fullPrompt, { signal: controller.signal });
+        const response = await llm.invoke(prompt, { signal: controller.signal });
 
         // Handle different response structures (OpenAI vs. Anthropic)
         let responseText: string;
@@ -74,15 +80,28 @@ async function safeAICall(
         }
 
         if (!responseText) {
-            console.error(`No valid response text from model ${model}`);
-            return fallback();
+            console.error(`No valid response text from model ${model}, using fallback`);
+            const content = article.content || article.description || article.title || "No content available";
+            return {
+                heading: article.title?.split(" ").slice(0, 5).join(" ") || "News Event Title",
+                summary: content.slice(0, 100).padEnd(50, " "),
+                bias: "neutral",
+                biasExplanation: `Due to limited processing, the article's tone appears neutral. The content, primarily ${content.slice(0, 20)}..., focuses on factual reporting without evident editorial slant. The writer avoids strong opinions, aiming to inform rather than persuade, though deeper analysis is constrained by the lack of LLM processing. This reflects a default objective stance based on the available text.`.padEnd(50, " ")
+            };
         }
 
-        const parsedResponse = await parser.parse(responseText);
+        // Manually parse with Zod
+        const parsedResponse = AIOutputSchema.parse(JSON.parse(responseText));
         return parsedResponse;
     } catch (error: any) {
         console.error(`Error with model ${model}:`, error.message);
-        return fallback();
+        const content = article.content || article.description || article.title || "No content available";
+        return {
+            heading: article.title?.split(" ").slice(0, 5).join(" ") || "News Event Title",
+            summary: content.slice(0, 100).padEnd(50, " "),
+            bias: "neutral",
+            biasExplanation: `Due to limited processing, the article's tone appears neutral. The content, primarily ${content.slice(0, 20)}..., focuses on factual reporting without evident editorial slant. The writer avoids strong opinions, aiming to inform rather than persuade, though deeper analysis is constrained by the lack of LLM processing. This reflects a default objective stance based on the available text.`.padEnd(50, " ")
+        };
     } finally {
         clearTimeout(timeoutId);
     }
@@ -106,20 +125,33 @@ async function fetchNewsArticles(query: string, pageSize: number = 5): Promise<a
 async function processArticles(articles: any[], model: string): Promise<NewsTopic> {
     const startTime = Date.now();
 
-    // Explicitly define the parser with the correct schema type
-    const parser = StructuredOutputParser.fromZodSchema(AIOutputSchema);
-
     const prompt = new PromptTemplate({
         template: `
-            Based on the following content, provide the requested outputs in the specified format. Ensure all fields meet the length requirements:
+            Based on the following content, provide the requested outputs in JSON format. Use the example below as a guide to meet length and format requirements.
             - heading: A concise, descriptive heading of exactly 5-10 words for the news event.
-            - summary: A neutral summary of 50-100 words describing the news event, without introductory text.
+            - summary: A neutral summary of 50-100 words describing the news event (e.g., product release, features, or reception), as detailed as possible, not the article's opinion.
             - bias: A strict 1-3 word bias tag (e.g., neutral, left-leaning, sensationalist).
-            - biasExplanation: A 50-100 word explanation of the bias based on language and content, independent of the tag.
+            - biasExplanation: A 50-100 word explanation of the article writer's perspective or biases, based on tone, word choice, and focus. If neutral, explain why (e.g., balanced tone), avoiding "can't judge bias."
+
+            Example (for content: "New Tesla Model Y launched with advanced autopilot"):
+            {
+                "heading": "Tesla Launches Model Y with Autopilot",
+                "summary": "Tesla introduced the Model Y with advanced autopilot features, enhancing safety and navigation. The electric SUV offers improved battery range and a sleek design, targeting eco-conscious drivers. The launch event highlighted production scalability and new software updates, with analysts noting strong market potential. Reception has been positive, though some debate its pricing compared to competitors. Tesla aims to dominate the EV market with this release.",
+                "bias": "neutral",
+                "biasExplanation": "The writer maintains a neutral stance, focusing on factual details like features and market reception. The tone is informative, using balanced language to present both Tesla’s achievements and market challenges without favoring a side. Word choice avoids emotional bias, aiming to educate readers on the Model Y’s launch and its implications in the electric vehicle industry."
+            }
+
             Content: {content}
+
+            Output format:
+            {
+                "heading": "...",
+                "summary": "...",
+                "bias": "...",
+                "biasExplanation": "..."
+            }
         `,
         inputVariables: ["content"],
-        outputParser: parser,
     });
 
     const results = await Promise.all(
@@ -128,14 +160,8 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
 
             const { heading, summary, bias, biasExplanation } = await safeAICall(
                 model,
-                await prompt.format({ content }), // Removed unnecessary await
-                parser,
-                () => ({
-                    heading: article.title?.split(" ").slice(0, 5).join(" ") || "News Event Title",
-                    summary: (content?.substring(0, 100) || "Summary not available.").padEnd(50, " "),
-                    bias: "neutral",
-                    biasExplanation: "The content lacks sufficient context for a detailed bias analysis. It appears to present information without clear political or editorial slant, focusing on factual reporting. However, without more depth, a comprehensive evaluation is not possible at this time.".padEnd(50, " ")
-                })
+                await prompt.format({ content }),
+                article // Pass the article for dynamic fallback
             );
 
             const newsItem: NewsItem = {
@@ -144,7 +170,7 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
                 source: {
                     url: article.url,
                     name: article.source.name,
-                    bias: bias.trim(), // Ensure 1-3 words, take first
+                    bias: bias.trim().split(" ")[0], // Ensure 1-3 words, take first
                     biasExplanation: biasExplanation.trim(),
                 },
                 lastUpdated: article.publishedAt || new Date().toISOString(),
