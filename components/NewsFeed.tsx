@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import NewsCard from "./NewsCard";
-import { NewsArticle } from "../types/news";
+import { NewsTopic } from "../types/news";
 
 interface Props {
-    articles: NewsArticle[];
+    topics: NewsTopic[];
 }
 
-const NewsFeed: React.FC<Props> = ({ articles }) => {
+const NewsFeed: React.FC<Props> = ({ topics }) => {
     const [index, setIndex] = useState(0);
 
     return (
@@ -19,12 +19,13 @@ const NewsFeed: React.FC<Props> = ({ articles }) => {
                 spaceBetween={20}
                 slidesPerView={1}
                 className="h-[90vh] w-full max-w-md"
-                mousewheel={true} // Enable mouse wheel scrolling
-                touchReleaseOnEdges={true} // Smooth edge release
+                mousewheel={true}
+                touchReleaseOnEdges={true}
+                effect="slide"
             >
-                {articles.map((article, idx) => (
+                {topics.map((topic, idx) => (
                     <SwiperSlide key={idx}>
-                        <NewsCard article={article} />
+                        <NewsCard topic={topic} />
                     </SwiperSlide>
                 ))}
             </Swiper>

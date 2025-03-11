@@ -13,29 +13,21 @@ interface Analysis {
 
 export default function ArticleDetail() {
     const router = useRouter();
-    const { url } = router.query;
+    const { topic } = router.query as { topic?: string };
     const [analysis, setAnalysis] = useState<Analysis | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        if (url) {
-            const fetchAnalysis = async () => {
-                setLoading(true);
-                const content = url;
-                const response = await openai.chat.completions.create({
-                    model: "gpt-4o",
-                    messages: [
-                        {
-                            role: "user",
-                            content: `Classify the political leaning of this article as left-leaning, right-leaning, or neutral, and provide a brief explanation: ${content}`,
-                        },
-                    ],
-                });
+        if (!topic) {
+            setLoading(false);
+            setAnalysis(null);
+            return;
+        }
 
-                const result = response.choices[0].message.content;
-                const [leaning, ...explanation] = result.split("\n");
-
-                const cacheKey = `summaries/${encodeURIComponent(url as string)}.txt`;
+        const fetchAnalysis = async () => {
+            try {
+                // Fetch the topic summary from Vercel Blob
+                const cacheKey = `summaries/topic_${encodeURIComponent(topic)}.txt`;
                 let summary = "Summary not available";
                 try {
                     const blobHead = await head(cacheKey, {
@@ -45,52 +37,62 @@ export default function ArticleDetail() {
                         const response = await fetch(blobHead.url);
                         summary = await response.text();
                     }
-                } catch (error) {
-                    console.error("Error fetching summary from Blob:", error);
+                } catch (blobError) {
+                    console.error("Error fetching summary from Blob:", blobError);
                 }
 
+                // Analyze the topic for bias and explanation
+                const response = await openai.chat.completions.create({
+                    model: "gpt-4o",
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Classify the overall political leaning of this news topic as left-leaning, right-leaning, or neutral, and provide a brief explanation: ${summary}`,
+                        },
+                    ],
+                });
+
+                const result = response.choices[0].message.content;
+                const [leaning, ...explanation] = result.split("\n");
+
                 setAnalysis({ leaning, explanation: explanation.join("\n"), summary });
+            } catch (error) {
+                console.error("Error in fetchAnalysis:", error);
+                setAnalysis({ leaning: "Unknown", explanation: "Failed to analyze", summary: "Summary not available" });
+            } finally {
                 setLoading(false);
-            };
-            fetchAnalysis();
-        }
-    }, [url]);
+            }
+        };
+
+        fetchAnalysis();
+    }, [topic]);
 
     if (loading)
         return (
-            <div className="flex items-center justify-center h-screen">
-                <p className="text-textSecondary text-xl animate-pulse">Loading...</p>
+            <div className="flex items-center justify-center h-screen bg-gradient-to-b from-backgroundDark to-backgroundLight">
+                <p className="text-textSecondary text-2xl animate-pulse">Loading...</p>
             </div>
         );
     if (!analysis)
         return (
-            <div className="flex items-center justify-center h-screen">
-                <p className="text-textSecondary text-xl">No analysis available.</p>
+            <div className="flex items-center justify-center h-screen bg-gradient-to-b from-backgroundDark to-backgroundLight">
+                <p className="text-textSecondary text-2xl">No analysis available.</p>
             </div>
         );
 
     return (
-        <div className="min-h-screen p-6 flex items-center justify-center">
-            <div className="max-w-2xl w-full bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8">
-                <h1 className="text-3xl font-bold text-textPrimary">Detailed Analysis</h1>
-                <div className="mt-6 space-y-4">
-                    <p>
-                        <strong className="text-textSecondary">URL:</strong>{" "}
-                        <a href={url as string} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                            {url}
-                        </a>
+        <div className="min-h-screen bg-gradient-to-b from-backgroundDark to-backgroundLight flex items-center justify-center">
+            <div className="max-w-2xl w-full bg-white/10 dark:bg-gray-900/80 backdrop-blur-md rounded-3xl shadow-2xl p-8 animate-fadeIn">
+                <h1 className="text-4xl font-bold text-textPrimary">{topic} - Detailed Analysis</h1>
+                <div className="mt-6 space-y-6">
+                    <p className="text-textSecondary">
+                        <strong>Leaning:</strong> <span className="text-textPrimary">{analysis.leaning}</span>
                     </p>
-                    <p>
-                        <strong className="text-textSecondary">Leaning:</strong>{" "}
-                        <span className="text-textPrimary">{analysis.leaning}</span>
+                    <p className="text-textSecondary">
+                        <strong>Explanation:</strong> <span className="text-textPrimary">{analysis.explanation}</span>
                     </p>
-                    <p>
-                        <strong className="text-textSecondary">Explanation:</strong>{" "}
-                        <span className="text-textPrimary">{analysis.explanation}</span>
-                    </p>
-                    <p>
-                        <strong className="text-textSecondary">Summary:</strong>{" "}
-                        <span className="text-textPrimary">{analysis.summary}</span>
+                    <p className="text-textSecondary">
+                        <strong>Summary:</strong> <span className="text-textPrimary">{analysis.summary}</span>
                     </p>
                 </div>
                 <button
