@@ -3,15 +3,13 @@ import NewsFeed from "../components/NewsFeed";
 import { NewsTopic } from "../types/news";
 
 export default function Home() {
-    const [topics, setTopics] = useState<NewsTopic[]>([]);
+    const [topics, setTopics] = useState<NewsTopic>([]);
     const [vibe, setVibe] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
     const [isMobile, setIsMobile] = useState<boolean>(false);
 
     useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth <= 768);
-        };
+        const checkMobile = () => setIsMobile(window.innerWidth <= 768);
         checkMobile();
         window.addEventListener("resize", checkMobile);
         return () => window.removeEventListener("resize", checkMobile);
@@ -21,11 +19,10 @@ export default function Home() {
         const fetchNews = async () => {
             setLoading(true);
             const res = await fetch(`/api/news?vibe=${encodeURIComponent(vibe)}`);
-            const data: NewsTopic[] = await res.json();
+            const data: NewsTopic = await res.json();
             setTopics(data);
             setLoading(false);
         };
-
         fetchNews();
     }, [vibe]);
 
@@ -43,7 +40,7 @@ export default function Home() {
                     <option value="Tech Enthusiast">Tech Enthusiast</option>
                     <option value="Athlete">Athlete</option>
                     <option value="Influencer">Influencer</option>
-                    <option value="Actor">Actor</option>
+                    <option value="Detective">Detective</option>
                 </select>
             </nav>
 
@@ -55,7 +52,7 @@ export default function Home() {
                 <NewsFeed topics={topics} isMobile={isMobile} />
             ) : (
                 <div className="flex items-center justify-center h-screen">
-                    <p className="text-textSecondary text-lg">No topics found.</p>
+                    <p className="text-textSecondary text-lg">No news found.</p>
                 </div>
             )}
         </div>

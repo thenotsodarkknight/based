@@ -2,10 +2,10 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/pagination";
 import NewsCard from "./NewsCard";
-import { NewsTopic } from "../types/news";
+import { NewsTopic } from "../types/news"; // NewsTopic is now an array of NewsItem
 
 interface Props {
-    topics: NewsTopic[];
+    topics: NewsTopic; // Array of NewsItem
     isMobile: boolean;
 }
 
@@ -28,9 +28,9 @@ const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
                 mousewheel={true}
                 style={{ height: "calc(100% - 4rem)" }}
             >
-                {topics.map((topic, idx) => (
+                {topics.map((item, idx) => (
                     <SwiperSlide key={idx}>
-                        <NewsCard topic={topic} />
+                        <NewsCard newsItem={item} /> {/* Pass NewsItem instead of NewsTopic */}
                     </SwiperSlide>
                 ))}
             </Swiper>
