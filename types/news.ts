@@ -8,11 +8,11 @@ export interface NewsItem {
         biasExplanation: string;
     };
     lastUpdated: string;
+    modelUsed: string; // Track the AI model used
 }
 
 export type NewsTopic = NewsItem[];
 
-// Define the type for blob metadata returned by list()
 export interface BlobMetadata {
     url: string;
     pathname: string;
