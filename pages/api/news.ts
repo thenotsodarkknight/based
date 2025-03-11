@@ -6,17 +6,18 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Updated to use NewsDataHub API
 async function fetchArticles(query: string, pageSize: number = 20): Promise<any[]> {
-    const response = await axios.get("https://newsapi.org/v2/everything", {
+    const response = await axios.get("https://newsdatahub.io/api/1/news", {
         params: {
-            apiKey: process.env.NEWSAPI_KEY,
+            apikey: process.env.NEWSDATAHUB_API_KEY, // Set this in your Vercel env vars
             q: query,
-            sortBy: "publishedAt,popularity",
             language: "en",
-            pageSize,
+            page_size: pageSize,  // Adjust page_size as needed
         },
     });
-    return response.data.articles;
+    // NewsDataHub returns articles in the "results" field
+    return response.data.results;
 }
 
 function clusterArticlesByTopic(articles: any[]): { [key: string]: any[] } {
@@ -45,12 +46,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { vibe = "", refresh = "false" } = req.query;
         const cacheDuration = 24 * 60 * 60 * 1000; // 24 hours
 
-        // Fetch initial articles (using a page size of 10)
+        // Fetch initial articles from NewsDataHub (pageSize set to 10)
         const initialArticles = await fetchArticles(vibe ? vibe.toString() : "news", 10);
         console.log("Fetched articles count:", initialArticles.length);
 
         if (!initialArticles || initialArticles.length === 0) {
-            console.error("No articles fetched. Check your NEWSAPI_KEY or query.");
+            console.error("No articles fetched. Check your NEWSDATAHUB_API_KEY or query.");
             return res.status(200).json([]);
         }
 
@@ -104,7 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     console.log(`Cache check error for ${topic}:`, error);
                 }
 
-                // Fetch additional articles using the generated topic as query (pageSize 50)
+                // Fetch additional articles using the generated topic as query (pageSize set to 50)
                 const additionalArticles = await fetchArticles(topic, 50);
                 const allArticles = [...topicArticles, ...additionalArticles];
                 const allContent = allArticles
@@ -139,7 +140,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         });
                         const bias = biasRes.choices[0].message.content.toLowerCase();
                         return {
-                            url: article.url,
+                            url: article.link,  // Note: NewsDataHub uses "link" for article URL
                             bias,
                         };
                     })
@@ -182,6 +183,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(200).json(newsTopics);
     } catch (error) {
         console.error("Error fetching news:", error);
-        res.status(500).json({ error: "Failed to fetch news:" + error });
+        res.status(500).json({ error: `Failed to fetch news: ${error}` });
     }
 }
