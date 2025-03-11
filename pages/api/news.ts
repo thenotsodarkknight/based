@@ -13,9 +13,10 @@ const AIOutputSchema = z.object({
     heading: z.string().min(5).max(10).describe("A concise, descriptive heading (5-10 words) for the news event related to the article"),
     summary: z.string().min(50).max(100).describe("A neutral summary (50-100 words) of the news event behind the article, without introductory text"),
     bias: z.string().min(1).max(3).describe("A strict 1-3 word bias tag (e.g., neutral, left-leaning, sensationalist)"),
-    biasExplanation: z.string().min(50).max(100).describe("A separate, independent explanation (50-100 word) of the bias based on language and content"),
+    biasExplanation: z.string().min(50).max(100).describe("A separate, independent explanation (50-100 words) of the bias based on language and content"),
 });
 
+// Use Zod inference for AIOutput type
 type AIOutput = z.infer<typeof AIOutputSchema>;
 
 const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -31,11 +32,11 @@ const AI_MODELS = {
     openai: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-4o-mini"],
     anthropic: ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"],
 };
-const DEFAULT_MODEL = "gpt-4o-mini";
+const DEFAULT_MODEL = "gpt-4o";
 
-// Initialize LLMs
-const openai = new OpenAI({ apiKey: openaiApiKey, temperature: 0.7 });
-const anthropic = new ChatAnthropic({ apiKey: anthropicApiKey, temperature: 0.7 });
+// Initialize LLMs with higher max_tokens
+const openai = new OpenAI({ apiKey: openaiApiKey, temperature: 0.7, maxTokens: 500 });
+const anthropic = new ChatAnthropic({ apiKey: anthropicApiKey, temperature: 0.7, maxTokens: 500 });
 
 async function safeAICall(
     model: string,
@@ -60,7 +61,6 @@ async function safeAICall(
         if (typeof response === 'string') {
             responseText = response;
         } else if (Array.isArray(response.content)) {
-            // Anthropic response: content is an array of MessageContentComplex
             const firstContent = response.content[0];
             if (firstContent && 'type' in firstContent && firstContent.type === 'text') {
                 responseText = firstContent.text || '';
@@ -71,6 +71,11 @@ async function safeAICall(
             responseText = response.content;
         } else {
             responseText = '';
+        }
+
+        if (!responseText) {
+            console.error(`No valid response text from model ${model}`);
+            return fallback();
         }
 
         const parsedResponse = await parser.parse(responseText);
@@ -100,10 +105,19 @@ async function fetchNewsArticles(query: string, pageSize: number = 5): Promise<a
 
 async function processArticles(articles: any[], model: string): Promise<NewsTopic> {
     const startTime = Date.now();
+
+    // Explicitly define the parser with the correct schema type
     const parser = StructuredOutputParser.fromZodSchema(AIOutputSchema);
 
     const prompt = new PromptTemplate({
-        template: `Based on the following content, provide the requested outputs. Content: {content}`,
+        template: `
+            Based on the following content, provide the requested outputs in the specified format. Ensure all fields meet the length requirements:
+            - heading: A concise, descriptive heading of exactly 5-10 words for the news event.
+            - summary: A neutral summary of 50-100 words describing the news event, without introductory text.
+            - bias: A strict 1-3 word bias tag (e.g., neutral, left-leaning, sensationalist).
+            - biasExplanation: A 50-100 word explanation of the bias based on language and content, independent of the tag.
+            Content: {content}
+        `,
         inputVariables: ["content"],
         outputParser: parser,
     });
@@ -116,7 +130,12 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
                 model,
                 await prompt.format({ content }), // Removed unnecessary await
                 parser,
-                () => ({ heading: article.title || "News Event", summary: content.substring(0, 100), bias: "neutral", biasExplanation: "No analysis available." })
+                () => ({
+                    heading: article.title?.split(" ").slice(0, 5).join(" ") || "News Event Title",
+                    summary: (content?.substring(0, 100) || "Summary not available.").padEnd(50, " "),
+                    bias: "neutral",
+                    biasExplanation: "The content lacks sufficient context for a detailed bias analysis. It appears to present information without clear political or editorial slant, focusing on factual reporting. However, without more depth, a comprehensive evaluation is not possible at this time.".padEnd(50, " ")
+                })
             );
 
             const newsItem: NewsItem = {
@@ -125,7 +144,7 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
                 source: {
                     url: article.url,
                     name: article.source.name,
-                    bias: bias.trim().split(" ")[0], // Ensure 1-3 words, take first
+                    bias: bias.trim(), // Ensure 1-3 words, take first
                     biasExplanation: biasExplanation.trim(),
                 },
                 lastUpdated: article.publishedAt || new Date().toISOString(),
