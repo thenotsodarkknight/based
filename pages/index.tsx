@@ -31,23 +31,20 @@ export default function Home() {
 
     return (
         <div className="min-h-screen relative bg-gradient-to-b from-backgroundDark to-backgroundLight">
-            <div className="fixed top-2 left-4 z-10">
-                <h1 className="text-base font-semibold text-textPrimary">based</h1>
-            </div>
-            <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <nav className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-backgroundDark/80 backdrop-blur-sm">
+                <h1 className="text-base font-semibold text-primary">based</h1>
                 <select
                     onChange={(e) => setVibe(e.target.value)}
                     className="p-2 bg-primary text-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
                     value={vibe}
                 >
                     <option value="">All Vibes</option>
-                    <option value="Politician">Politician</option>
                     <option value="Tech Enthusiast">Tech Enthusiast</option>
                     <option value="Athlete">Athlete</option>
                     <option value="Influencer">Influencer</option>
                     <option value="Actor">Actor</option>
                 </select>
-            </div>
+            </nav>
 
             {loading ? (
                 <div className="flex items-center justify-center h-screen">

@@ -9,8 +9,8 @@ const NewsCard: React.FC<Props> = ({ topic }) => {
     return (
         <div className="flex flex-col justify-between h-[90vh] w-full bg-white/20 backdrop-blur-md rounded-xl shadow-xl p-3 mx-auto transform transition-all duration-300 hover:shadow-2xl animate-fadeIn md:max-w-md">
             <div className="space-y-3">
-                <h2 className="text-xl font-semibold text-textPrimary line-clamp-1">{topic.topic}</h2>
-                <p className="text-textSecondary text-xs leading-relaxed line-clamp-4">{topic.summary}</p>
+                <h2 className="text-xl font-semibold text-textPrimary">{topic.topic}</h2>
+                <p className="text-textSecondary text-xs leading-relaxed">{topic.summary}</p>
                 <div className="space-y-2">
                     <h3 className="text-base font-medium text-textPrimary">Sources by Bias</h3>
                     <div className="grid grid-cols-1 gap-2">

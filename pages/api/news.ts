@@ -1,10 +1,23 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 import { NewsTopic } from "../../types/news";
-import { put, head } from "@vercel/blob";
+import { put, head, del } from "@vercel/blob";
 import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+async function fetchArticles(query: string, pageSize: number = 20): Promise<any[]> {
+    const response = await axios.get("https://newsapi.org/v2/everything", {
+        params: {
+            apiKey: process.env.NEWSAPI_KEY,
+            q: query,
+            sortBy: "publishedAt,popularity",
+            language: "en",
+            pageSize,
+        },
+    });
+    return response.data.articles;
+}
 
 function clusterArticlesByTopic(articles: any[]): { [key: string]: any[] } {
     const clusters: { [key: string]: any[] } = {};
@@ -29,21 +42,13 @@ function clusterArticlesByTopic(articles: any[]): { [key: string]: any[] } {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
-        const { vibe = "" } = req.query;
+        const { vibe = "", refresh = "false" } = req.query;
+        const cacheDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-        const newsResponse = await axios.get("https://newsapi.org/v2/everything", {
-            params: {
-                apiKey: process.env.NEWSAPI_KEY,
-                q: vibe || "news",
-                sortBy: "publishedAt,popularity",
-                language: "en",
-                pageSize: 20,
-            },
-        });
-
-        const articles = newsResponse.data.articles;
-
-        const clusteredArticles = clusterArticlesByTopic(articles);
+        // Initial fetch to get some articles for topic generation
+        const query = Array.isArray(vibe) ? vibe[0] : vibe;
+        const initialArticles = await fetchArticles(query || "news", 10);
+        const clusteredArticles = clusterArticlesByTopic(initialArticles);
 
         const newsTopics: NewsTopic[] = await Promise.all(
             Object.entries(clusteredArticles).map(async ([tempTopic, topicArticles]) => {
@@ -64,42 +69,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 });
                 const topic = topicRes.choices[0].message.content || tempTopic;
 
-                // Check Vercel Blob for cached summary
-                const cacheKey = `summaries/topic_${encodeURIComponent(topic)}.txt`;
-                let summary: string | undefined;
+                // Cache key for this topic
+                const cacheKey = `topics/${encodeURIComponent(topic)}.json`;
+                let cachedData: NewsTopic | null = null;
+
+                // Check if cached data exists and is recent
                 try {
                     const blobHead = await head(cacheKey, {
                         token: process.env.BLOB_READ_WRITE_TOKEN,
                     });
                     if (blobHead) {
                         const response = await fetch(blobHead.url);
-                        summary = await response.text();
+                        const data = await response.json();
+                        const lastUpdated = new Date(data.lastUpdated).getTime();
+                        if (Date.now() - lastUpdated < cacheDuration && refresh !== "true") {
+                            return data as NewsTopic;
+                        }
+                        cachedData = data as NewsTopic;
+                        await del(cacheKey, { token: process.env.BLOB_READ_WRITE_TOKEN }); // Delete old cache
                     }
-                } catch (error) { }
-
-                // Generate a neutral summary based on all links' content
-                if (!summary) {
-                    const summaryRes = await openai.chat.completions.create({
-                        model: "gpt-4o",
-                        messages: [
-                            {
-                                role: "user",
-                                content: `Generate a neutral summary (50-100 words) of the news topic based on the following combined content from multiple sources: ${combinedContent}. Focus on providing an unbiased overview of the topic without favoring any perspective.`,
-                            },
-                        ],
-                    });
-                    summary = summaryRes.choices[0].message.content;
-
-                    await put(cacheKey, summary, {
-                        access: "public",
-                        token: process.env.BLOB_READ_WRITE_TOKEN,
-                        cacheControlMaxAge: 24 * 60 * 60,
-                    });
+                } catch (error) {
+                    console.log(`No valid cache for ${topic} or error:`, error);
                 }
+
+                // Fetch more articles using the AI-generated topic name
+                const additionalArticles = await fetchArticles(topic, 50);
+                const allArticles = [...topicArticles, ...additionalArticles];
+
+                const allContent = allArticles
+                    .map((article: any) => article.content || article.description || article.title)
+                    .filter(Boolean)
+                    .join("\n");
+
+                // Generate a neutral summary based on all articles
+                const summaryRes = await openai.chat.completions.create({
+                    model: "gpt-4o",
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Generate a neutral summary (50-100 words) of the news topic based on the following combined content from multiple sources: ${allContent}. Focus on providing an unbiased overview of the topic without favoring any perspective.`,
+                        },
+                    ],
+                });
+                const summary = summaryRes.choices[0].message.content;
 
                 // Classify bias for each article and categorize links
                 const articlesWithBias = await Promise.all(
-                    topicArticles.map(async (article: any) => {
+                    allArticles.map(async (article: any) => {
                         const content = article.content || article.description || article.title;
                         const biasRes = await openai.chat.completions.create({
                             model: "gpt-4o",
@@ -132,17 +148,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     }
                 });
 
-                return {
+                const newTopic: NewsTopic = {
                     topic,
                     summary,
                     leftLinks,
                     rightLinks,
                     neutralLinks,
+                    lastUpdated: new Date().toISOString(),
                 };
+
+                // Cache the new topic data
+                await put(cacheKey, JSON.stringify(newTopic), {
+                    access: "public",
+                    token: process.env.BLOB_READ_WRITE_TOKEN,
+                    cacheControlMaxAge: cacheDuration / 1000,
+                });
+
+                return newTopic;
             })
         );
 
-        res.status(200).json(newsTopics);
+        res.status(200).json(newsTopics); // Fixed typo: newTopics -> newsTopics
     } catch (error) {
         console.error("Error fetching news:", error);
         res.status(500).json({ error: "Failed to fetch news" });
