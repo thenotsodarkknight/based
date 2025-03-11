@@ -1,12 +1,12 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
-import { NewsTopic, NewsArticle } from "../../types/news";
+import { NewsTopic } from "../../types/news";
 import { put, head } from "@vercel/blob";
 import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Simple keyword-based clustering (can be enhanced with NLP)
+// Cluster articles by keywords (initial clustering before AI refinement)
 function clusterArticlesByTopic(articles: any[]): { [key: string]: any[] } {
     const clusters: { [key: string]: any[] } = {};
 
@@ -18,7 +18,6 @@ function clusterArticlesByTopic(articles: any[]): { [key: string]: any[] } {
                 !["the", "and", "for", "with", "from", "this", "that"].includes(word)
         );
 
-        // Use the most prominent keyword as the topic
         const topic = keywords[0] || "general";
         if (!clusters[topic]) {
             clusters[topic] = [];
@@ -46,17 +45,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const articles = newsResponse.data.articles;
 
-        // Cluster articles by topic
+        // Initial clustering by keywords
         const clusteredArticles = clusterArticlesByTopic(articles);
 
-        // Process each topic
+        // Process each cluster to generate AI-based topic names, summaries, and analysis
         const newsTopics: NewsTopic[] = await Promise.all(
-            Object.entries(clusteredArticles).map(async ([topic, topicArticles]) => {
-                // Collect content for summary
+            Object.entries(clusteredArticles).map(async ([tempTopic, topicArticles]) => {
                 const combinedContent = topicArticles
                     .map((article: any) => article.content || article.description || article.title)
                     .filter(Boolean)
                     .join("\n");
+
+                // Generate a descriptive topic name using AI
+                const topicRes = await openai.chat.completions.create({
+                    model: "gpt-4o",
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Generate a concise and descriptive topic name (5-10 words) for the following group of news articles: ${combinedContent}`,
+                        },
+                    ],
+                });
+                const topic = topicRes.choices[0].message.content || tempTopic;
 
                 // Check Vercel Blob for cached summary
                 const cacheKey = `summaries/topic_${encodeURIComponent(topic)}.txt`;
@@ -84,7 +94,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     });
                     summary = summaryRes.choices[0].message.content;
 
-                    // Cache the summary in Vercel Blob
                     await put(cacheKey, summary, {
                         access: "public",
                         token: process.env.BLOB_READ_WRITE_TOKEN,
@@ -92,50 +101,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     });
                 }
 
-                // Classify bias for each article in the topic
-                const articlesWithBias: NewsArticle[] = await Promise.all(
-                    topicArticles.map(async (article: any) => {
-                        const content = article.content || article.description || article.title;
-                        const biasRes = await openai.chat.completions.create({
-                            model: "gpt-4o",
-                            messages: [
-                                {
-                                    role: "user",
-                                    content: `Classify the political leaning of this article as left-leaning, right-leaning, or neutral: ${content}`,
-                                },
-                            ],
-                        });
-                        const bias = biasRes.choices[0].message.content.toLowerCase();
-                        return {
-                            title: article.title,
-                            url: article.url,
-                            content,
-                            bias,
-                        };
-                    })
-                );
-
-                // Categorize links based on bias
-                const leftLinks: string[] = [];
-                const rightLinks: string[] = [];
-                const neutralLinks: string[] = [];
-
-                articlesWithBias.forEach((article) => {
-                    if (article.bias.includes("left")) {
-                        leftLinks.push(article.url);
-                    } else if (article.bias.includes("right")) {
-                        rightLinks.push(article.url);
-                    } else {
-                        neutralLinks.push(article.url);
-                    }
+                // Analyze the topic for bias
+                const analysisRes = await openai.chat.completions.create({
+                    model: "gpt-4o",
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Classify the overall political leaning of this news topic as left-leaning, right-leaning, or neutral, and provide a brief explanation: ${summary}`,
+                        },
+                    ],
                 });
+                const result = analysisRes.choices[0].message.content;
+                const [leaning, ...explanation] = result.split("\n");
 
                 return {
-                    topic: topic.charAt(0).toUpperCase() + topic.slice(1), // Capitalize topic
+                    topic,
                     summary,
-                    leftLinks,
-                    rightLinks,
-                    neutralLinks,
+                    leftLinks: [], // Simplified for now
+                    rightLinks: [],
+                    neutralLinks: [],
+                    leaning: leaning || "Unknown",
+                    explanation: explanation.join("\n") || "No explanation available",
                 };
             })
         );
