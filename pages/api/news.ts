@@ -6,23 +6,49 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Updated to use NewsDataHub API
-async function fetchArticles(query: string, pageSize: number = 20): Promise<any[]> {
-    const response = await axios.get("https://newsdatahub.io/api/1/news", {
-        params: {
-            apikey: process.env.NEWSDATAHUB_API_KEY, // Set this in your Vercel env vars
-            q: query,
-            language: "en",
-            page_size: pageSize,  // Adjust page_size as needed
-        },
-    });
-    // NewsDataHub returns articles in the "results" field
-    return response.data.results;
+// Global counter for OpenAI API calls for this request
+let apiCallCount = 0;
+const MAX_API_CALLS = 300;
+
+/**
+ * A helper that wraps an OpenAI call.
+ * If the maximum API call limit has been reached, it returns a fallback value.
+ */
+async function safeOpenAICall(
+    params: { model: string; messages: any[] },
+    fallback: () => string
+): Promise<string> {
+    if (apiCallCount >= MAX_API_CALLS) {
+        return fallback();
+    }
+    apiCallCount++;
+    const response = await openai.chat.completions.create(params);
+    return response.choices[0].message.content;
 }
 
+// Fetch articles using NewsDataHub API endpoint.
+async function fetchArticles(query: string, pageSize: number = 20): Promise<any[]> {
+    try {
+        const response = await axios.get("https://api.newsdatahub.io/v1/news", {
+            params: {
+                apikey: process.env.NEWSDATAHUB_API_KEY,
+                q: query,
+                language: "en",
+                page_size: pageSize,
+            },
+            timeout: 10000,
+        });
+        // Assume articles are returned in "results"
+        return response.data.results || [];
+    } catch (error: any) {
+        console.error("Error fetching articles from NewsDataHub:", error.message);
+        throw new Error(`NewsDataHub API error: ${error.message}`);
+    }
+}
+
+// Cluster articles by taking the first non-trivial keyword from the title.
 function clusterArticlesByTopic(articles: any[]): { [key: string]: any[] } {
     const clusters: { [key: string]: any[] } = {};
-
     articles.forEach((article) => {
         if (!article.title) return;
         const titleWords = article.title.toLowerCase().split(/\W+/);
@@ -37,19 +63,52 @@ function clusterArticlesByTopic(articles: any[]): { [key: string]: any[] } {
         }
         clusters[topicKey].push(article);
     });
-
     return clusters;
 }
 
+// Helper to classify articles in batches with a concurrency limit.
+async function classifyArticles(articles: any[], concurrency: number = 5): Promise<{ url: string; bias: string }[]> {
+    const results: { url: string; bias: string }[] = [];
+    for (let i = 0; i < articles.length; i += concurrency) {
+        const batch = articles.slice(i, i + concurrency);
+        const batchResults = await Promise.all(
+            batch.map(async (article) => {
+                const content = article.content || article.description || article.title;
+                const bias = await safeOpenAICall(
+                    {
+                        model: "gpt-4o",
+                        messages: [
+                            {
+                                role: "user",
+                                content: `Classify the political leaning of this article as left-leaning, right-leaning, or neutral: ${content}`,
+                            },
+                        ],
+                    },
+                    () => "neutral" // fallback: assume neutral if limit reached
+                );
+                return {
+                    // NewsDataHub returns the article URL in the "link" field
+                    url: article.link,
+                    bias: bias.toLowerCase(),
+                };
+            })
+        );
+        results.push(...batchResults);
+    }
+    return results;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    // Reset the global API call counter at the start of each request
+    apiCallCount = 0;
+
     try {
         const { vibe = "", refresh = "false" } = req.query;
         const cacheDuration = 24 * 60 * 60 * 1000; // 24 hours
 
-        // Fetch initial articles from NewsDataHub (pageSize set to 10)
-        const initialArticles = await fetchArticles(vibe ? vibe.toString() : "news", 10);
+        // Fetch a small set of initial articles to keep processing fast.
+        const initialArticles = await fetchArticles(vibe ? vibe.toString() : "news", 5);
         console.log("Fetched articles count:", initialArticles.length);
-
         if (!initialArticles || initialArticles.length === 0) {
             console.error("No articles fetched. Check your NEWSDATAHUB_API_KEY or query.");
             return res.status(200).json([]);
@@ -57,7 +116,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const clusteredArticles = clusterArticlesByTopic(initialArticles);
         console.log("Clusters generated:", Object.keys(clusteredArticles));
-
         if (Object.keys(clusteredArticles).length === 0) {
             console.warn("No clusters found, returning empty topics array.");
             return res.status(200).json([]);
@@ -70,24 +128,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     .filter(Boolean)
                     .join("\n");
 
-                // Generate a concise topic name using OpenAI (using gpt-4o)
-                const topicRes = await openai.chat.completions.create({
-                    model: "gpt-4o",
-                    messages: [
-                        {
-                            role: "user",
-                            content: `Generate a concise and descriptive topic name (5-10 words) for the following group of news articles: ${combinedContent}`,
-                        },
-                    ],
-                });
-                const topic = topicRes.choices[0].message.content.trim() || tempTopic;
+                // Generate a concise topic name using OpenAI.
+                const topic = (await safeOpenAICall(
+                    {
+                        model: "gpt-4o",
+                        messages: [
+                            {
+                                role: "user",
+                                content: `Generate a concise and descriptive topic name (5-10 words) for the following group of news articles: ${combinedContent}`,
+                            },
+                        ],
+                    },
+                    () => tempTopic // fallback: use default cluster name if limit reached
+                )).trim();
+
                 console.log("Generated topic:", topic);
 
-                // Build a cache key for this topic
                 const cacheKey = `topics/${encodeURIComponent(topic)}.json`;
                 let cachedData: NewsTopic | null = null;
-
-                // Check if cached data exists and is recent
                 try {
                     const blobHead = await head(cacheKey, { token: process.env.BLOB_READ_WRITE_TOKEN });
                     if (blobHead) {
@@ -105,51 +163,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     console.log(`Cache check error for ${topic}:`, error);
                 }
 
-                // Fetch additional articles using the generated topic as query (pageSize set to 50)
-                const additionalArticles = await fetchArticles(topic, 50);
+                // Fetch a few additional articles to broaden the sample.
+                const additionalArticles = await fetchArticles(topic, 10);
                 const allArticles = [...topicArticles, ...additionalArticles];
                 const allContent = allArticles
                     .map((article: any) => article.content || article.description || article.title)
                     .filter(Boolean)
                     .join("\n");
 
-                // Generate a neutral summary using OpenAI (using gpt-4o)
-                const summaryRes = await openai.chat.completions.create({
-                    model: "gpt-4o",
-                    messages: [
-                        {
-                            role: "user",
-                            content: `Generate a neutral summary (50-100 words) of the news topic based on the following combined content from multiple sources: ${allContent}. Focus on providing an unbiased overview without favoring any perspective.`,
-                        },
-                    ],
-                });
-                const summary = summaryRes.choices[0].message.content.trim();
+                // Generate a neutral summary using OpenAI.
+                const summary = (await safeOpenAICall(
+                    {
+                        model: "gpt-4o",
+                        messages: [
+                            {
+                                role: "user",
+                                content: `Generate a neutral summary (50-100 words) of the news topic based on the following combined content from multiple sources: ${allContent}. Focus on providing an unbiased overview without favoring any perspective.`,
+                            },
+                        ],
+                    },
+                    () => allContent.substring(0, 200) // fallback: use truncated content
+                )).trim();
 
-                // Classify bias for each article using OpenAI (using gpt-4o)
-                const articlesWithBias = await Promise.all(
-                    allArticles.map(async (article: any) => {
-                        const content = article.content || article.description || article.title;
-                        const biasRes = await openai.chat.completions.create({
-                            model: "gpt-4o",
-                            messages: [
-                                {
-                                    role: "user",
-                                    content: `Classify the political leaning of this article as left-leaning, right-leaning, or neutral: ${content}`,
-                                },
-                            ],
-                        });
-                        const bias = biasRes.choices[0].message.content.toLowerCase();
-                        return {
-                            url: article.link,  // Note: NewsDataHub uses "link" for article URL
-                            bias,
-                        };
-                    })
-                );
+                // Classify articles' bias using our helper (this may use several API calls)
+                const articlesWithBias = await classifyArticles(allArticles, 5);
 
                 const leftLinks: string[] = [];
                 const rightLinks: string[] = [];
                 const neutralLinks: string[] = [];
-
                 articlesWithBias.forEach((article) => {
                     if (article.bias.includes("left")) {
                         leftLinks.push(article.url);
@@ -169,7 +210,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     lastUpdated: new Date().toISOString(),
                 };
 
-                // Cache the new topic data
+                // Cache the new topic data.
                 await put(cacheKey, JSON.stringify(newTopic), {
                     access: "public",
                     token: process.env.BLOB_READ_WRITE_TOKEN,
@@ -181,8 +222,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         );
 
         res.status(200).json(newsTopics);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching news:", error);
-        res.status(500).json({ error: `Failed to fetch news: ${error}` });
+        res.status(500).json({ error: `Failed to fetch news: ${error.message}` });
     }
 }
