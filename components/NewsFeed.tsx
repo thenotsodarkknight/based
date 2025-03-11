@@ -21,12 +21,12 @@ const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
     }
 
     return (
-        <div className="h-screen w-full pt-16"> {/* Adjust padding top to match navbar height */}
+        <div className="h-screen w-full pt-16">
             <Swiper
                 direction="vertical"
                 pagination={{ clickable: true }}
                 mousewheel={true}
-                style={{ height: "calc(100% - 4rem)" }} // Adjust height to account for navbar
+                style={{ height: "calc(100% - 4rem)" }}
             >
                 {topics.map((topic, idx) => (
                     <SwiperSlide key={idx}>

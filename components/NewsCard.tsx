@@ -62,9 +62,11 @@ const NewsCard: React.FC<Props> = ({ topic }) => {
                                 ))}
                             </div>
                         )}
-                        {topic.leftLinks.length === 0 && topic.rightLinks.length === 0 && topic.neutralLinks.length === 0 && (
-                            <p className="text-textSecondary text-xs">No sources available.</p>
-                        )}
+                        {topic.leftLinks.length === 0 &&
+                            topic.rightLinks.length === 0 &&
+                            topic.neutralLinks.length === 0 && (
+                                <p className="text-textSecondary text-xs">No sources available.</p>
+                            )}
                     </div>
                 </div>
             </div>

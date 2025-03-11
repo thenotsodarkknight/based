@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const result = response.choices[0].message.content;
         const [leaning, ...explanation] = result.split("\n");
-        res.status(200).json({ leaning, explanation: explanation.join("\n") });
+        res.status(200).json({ leaning: leaning.trim(), explanation: explanation.join("\n").trim() });
     } catch (error) {
         console.error("Error classifying article:", error);
         res.status(500).json({ error: "Failed to classify article" });
