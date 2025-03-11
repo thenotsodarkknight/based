@@ -28,10 +28,10 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000;
 const MAX_TOTAL_TIME_MS = 5 * 60 * 1000;
 
 const AI_MODELS = {
-    openai: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-4o-mini"],
-    anthropic: ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"],
+    openai: ["o3-mini", "o1-mini", "gpt-4o-mini"],
+    anthropic: ["claude-3-5-haiku-20241022", "claude-3-haiku-20240307"],
 };
-const DEFAULT_MODEL = "claude-3-haiku-20240307";
+const DEFAULT_MODEL = "o3-mini";
 
 // Initialize LLMs with higher max_tokens
 const openai = new OpenAI({ apiKey: openaiApiKey, temperature: 0.5, maxTokens: 600 });

@@ -74,12 +74,12 @@ export default function Home() {
                     value={model}
                 >
                     <optgroup label="OpenAI">
-                        {["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-4o-mini"].map(m => (
+                        {["o3-mini", "o1-mini", "gpt-4o-mini"].map(m => (
                             <option key={m} value={m}>{m}</option>
                         ))}
                     </optgroup>
                     <optgroup label="Anthropic">
-                        {["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"].map(m => (
+                        {["claude-3-5-haiku-20241022", "claude-3-haiku-20240307"].map(m => (
                             <option key={m} value={m}>{m}</option>
                         ))}
                     </optgroup>
