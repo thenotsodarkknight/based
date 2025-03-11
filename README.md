@@ -173,8 +173,6 @@ This project is licensed under the MIT License. See LICENSE for details.
 Acknowledgments
 ---------------
 
-Built with ❤️ by [Your Name]
-
-Powered by xAI, OpenAI, and NewsAPI
+Built with ❤️ by Abeen Bhattacharya
 
 Inspired by the need for balanced, bias-aware news consumption
