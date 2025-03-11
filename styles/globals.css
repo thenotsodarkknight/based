@@ -21,3 +21,18 @@ body {
 .animate-fadeIn {
     animation: fadeIn 0.5s ease-out;
 }
+
+/* Remove shadows from Swiper slides and MUI cards */
+.swiper-slide {
+    box-shadow: none !important;
+    /* Remove any default Swiper shadow */
+}
+
+.MuiCard-root {
+    box-shadow: none !important;
+    /* Remove MUI Card shadow */
+    background-color: #333333;
+    /* Slightly lighter than backgroundLight for contrast */
+    border: 1px solid #444444;
+    /* Optional: Add a subtle border for definition */
+}
