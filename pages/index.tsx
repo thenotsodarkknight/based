@@ -5,7 +5,7 @@ import { NewsTopic } from "../types/news";
 export default function Home() {
     const [topics, setTopics] = useState<NewsTopic>([]);
     const [vibe, setVibe] = useState<string>("");
-    const [model, setModel] = useState<string>("claude-3-haiku-20240307");
+    const [model, setModel] = useState<string>("o3-mini");
     const [loading, setLoading] = useState<boolean>(false);
     const [isMobile, setIsMobile] = useState<boolean>(false);
 
