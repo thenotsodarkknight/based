@@ -53,7 +53,7 @@ Installation
 ### Clone the Repository:
 
 ```
-git clone [https://github.com/your-username/based.git](https://github.com/thenotsodarkknight/based.git)
+git clone https://github.com/your-username/based.git
 cd based
 ```
 
