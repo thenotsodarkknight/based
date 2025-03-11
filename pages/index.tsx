@@ -28,6 +28,7 @@ export default function Home() {
                     value={vibe}
                 >
                     <option value="">All Vibes</option>
+                    <option value="Politician">Politician</option>
                     <option value="Tech Enthusiast">Tech Enthusiast</option>
                     <option value="Athlete">Athlete</option>
                     <option value="Influencer">Influencer</option>

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { NewsTopic } from "../types/news";
 import Link from "next/link";
 
@@ -7,23 +7,6 @@ interface Props {
 }
 
 const NewsCard: React.FC<Props> = ({ topic }) => {
-    useEffect(() => {
-        const styleSheet = document.createElement("style");
-        styleSheet.textContent = `
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-fadeIn {
-        animation: fadeIn 0.5s ease-out;
-      }
-    `;
-        document.head.appendChild(styleSheet);
-        return () => {
-            document.head.removeChild(styleSheet); // Cleanup on unmount
-        };
-    }, []);
-
     return (
         <div className="flex flex-col justify-between h-[90vh] w-full max-w-md mx-auto bg-white/10 dark:bg-gray-900/80 backdrop-blur-md rounded-3xl shadow-2xl p-6 transform transition-all duration-300 hover:scale-105 animate-fadeIn">
             <div>
