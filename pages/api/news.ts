@@ -61,7 +61,7 @@ async function safeAICall(
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
-            let llm = model.startsWith("gpt-") ? openai : anthropic;
+            let llm = model.startsWith("gpt-") || model.startsWith("o") ? openai : anthropic;
             const response = await llm.invoke(prompt, { signal: controller.signal });
 
             let responseText = "";
