@@ -26,23 +26,24 @@ async function safeOpenAICall(
     return response.choices[0].message.content;
 }
 
-// Fetch articles using NewsDataHub API endpoint.
+// Fetch articles using GDELT Document API.
 async function fetchArticles(query: string, pageSize: number = 20): Promise<any[]> {
     try {
-        const response = await axios.get("https://api.newsdatahub.io/v1/news", {
+        const response = await axios.get("https://api.gdeltproject.org/api/v2/doc/doc", {
             params: {
-                apikey: process.env.NEWSDATAHUB_API_KEY,
-                q: query,
-                language: "en",
-                page_size: pageSize,
+                query: query,
+                mode: "ArtList",
+                maxrecords: pageSize,
+                sort: "DateDesc",
+                format: "json",
             },
             timeout: 10000,
         });
-        // Assume articles are returned in "results"
-        return response.data.results || [];
+        // Assume articles are returned in "articles"
+        return response.data.articles || [];
     } catch (error: any) {
-        console.error("Error fetching articles from NewsDataHub:", error.message);
-        throw new Error(`NewsDataHub API error: ${error.message}`);
+        console.error("Error fetching articles from GDELT:", error.message);
+        throw new Error(`GDELT API error: ${error.message}`);
     }
 }
 
@@ -87,8 +88,8 @@ async function classifyArticles(articles: any[], concurrency: number = 5): Promi
                     () => "neutral" // fallback: assume neutral if limit reached
                 );
                 return {
-                    // NewsDataHub returns the article URL in the "link" field
-                    url: article.link,
+                    // For GDELT, we assume the article URL is in the "url" field.
+                    url: article.url,
                     bias: bias.toLowerCase(),
                 };
             })
@@ -110,7 +111,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const initialArticles = await fetchArticles(vibe ? vibe.toString() : "news", 5);
         console.log("Fetched articles count:", initialArticles.length);
         if (!initialArticles || initialArticles.length === 0) {
-            console.error("No articles fetched. Check your NEWSDATAHUB_API_KEY or query.");
+            console.error("No articles fetched. Check your query.");
             return res.status(200).json([]);
         }
 
