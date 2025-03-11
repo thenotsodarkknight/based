@@ -131,38 +131,38 @@ Based on the following content, provide the requested outputs in JSON format. Us
 Examples:
 
 Neutral Example (for content: "New Tesla Model Y launched with advanced autopilot"):
-{
+{{ 
   "heading": "Tesla Unveils Model Y with Advanced Autopilot Features",
   "summary": "Tesla has launched the Model Y, an electric SUV equipped with advanced autopilot technology. The article highlights improved battery range and production scalability, presenting a balanced view without editorializing.",
   "bias": "neutral",
   "biasExplanation": "The article maintains a neutral tone, focusing on factual reporting and technological details, without overtly favoring any perspective."
-}
+}}
 
 Left-leaning Example (for content: "Government announces new climate policies with a focus on renewable energy and social equity."):
-{
+{{ 
   "heading": "Government Unveils Progressive Climate Policies",
   "summary": "The government has introduced a series of climate policies emphasizing renewable energy investments and social equity. The measures are portrayed as transformative for environmental and social reform, though critics raise concerns about economic impacts.",
   "bias": "left-leaning",
   "biasExplanation": "The article adopts a left-leaning perspective by emphasizing progressive policy benefits and social justice while downplaying potential economic drawbacks."
-}
+}}
 
 Right-leaning Example (for content: "Critics argue that the new tax reforms could hamper business growth and burden middle-class families."):
-{
+{{ 
   "heading": "Controversy Over New Tax Reforms Raises Business Concerns",
   "summary": "The new tax reforms have sparked debate among business leaders and economists, with concerns over potential negative impacts on economic growth and middle-class stability. The narrative is critical of the reforms and cautious about government intervention.",
   "bias": "right-leaning",
   "biasExplanation": "The article exhibits a right-leaning bias by focusing on the economic risks of the tax reforms and questioning their overall benefits, favoring fiscal conservatism."
-}
+}}
 
 Content: {content}
 
 Output format:
-{
+{{ 
   "heading": "...",
   "summary": "...",
   "bias": "...",
   "biasExplanation": "..."
-}
+}}
     `,
         inputVariables: ["content"],
     });
