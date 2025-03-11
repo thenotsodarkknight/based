@@ -10,7 +10,7 @@ import { z } from "zod";
 // Define the output structure type using Zod
 const AIOutputSchema = z.object({
     heading: z.string().describe("A descriptive heading for the news event related to the article, no length limit"),
-    summary: z.string().describe("A neutral summary of the news event behind the article, as detailed as desired, no length limit"),
+    summary: z.string().describe("A detailed, neutral summary of the news event behind the article. Focus on the core news event, providing context, implications, and key facts without reiterating the article's subjective evaluation."),
     bias: z.string().describe("A single keyword bias tag (e.g., neutral, left-leaning, right-leaning, sensationalist)"),
     biasExplanation: z.string().describe("An explanation of the article writer's perspective or biases, based on tone, word choice, and focus, no length limit"),
 });
@@ -93,7 +93,7 @@ async function safeAICall(
         } catch (error: any) {
             console.error(`Error with model ${model}:`, error.message);
             // Append error details to prompt for the next call
-            prompt = `${prompt}\n\nPrevious attempt failed with error: ${error.message}. Ensure the output strictly adheres to the schema: heading (no length limit), summary (no length limit), bias (single keyword), biasExplanation (no length limit).`;
+            prompt = `${prompt}\n\nPrevious attempt failed with error: ${error.message}. Ensure the output strictly adheres to the schema: heading (no length limit), summary (detailed and focused solely on the news event), bias (single keyword), biasExplanation (no length limit).`;
             // Continue looping to recall the AI
         } finally {
             clearTimeout(timeoutId);
@@ -124,7 +124,7 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
 Based on the following content, provide the requested outputs in JSON format. Use the examples below as a guide to meet the format requirements. There are no length limits for heading, summary, or biasExplanation, but bias must be a single keyword.
 
 - heading: A descriptive heading for the news event related to the article.
-- summary: A neutral summary of the news event behind the article.
+- summary: A detailed, neutral summary of the news event behind the article. Focus on describing the core event, context, implications, and key facts without summarizing the article’s subjective evaluation.
 - bias: A single keyword bias tag (e.g., neutral, left-leaning, right-leaning).
 - biasExplanation: An explanation of the article writer's perspective or biases, based on tone, word choice, and focus.
 
@@ -133,25 +133,25 @@ Examples:
 Neutral Example (for content: "New Tesla Model Y launched with advanced autopilot"):
 {{ 
   "heading": "Tesla Unveils Model Y with Advanced Autopilot Features",
-  "summary": "Tesla has launched the Model Y, an electric SUV equipped with advanced autopilot technology. The article highlights improved battery range and production scalability, presenting a balanced view without editorializing.",
+  "summary": "Tesla has officially launched its new Model Y, an electric SUV that features advanced autopilot capabilities, an improved battery range, and enhanced safety systems. The launch event showcased significant updates in production scalability and innovative software enhancements, positioning Tesla to capture a larger share of the competitive electric vehicle market. Industry analysts see this as a pivotal moment in the rapidly evolving automotive landscape.",
   "bias": "neutral",
-  "biasExplanation": "The article maintains a neutral tone, focusing on factual reporting and technological details, without overtly favoring any perspective."
+  "biasExplanation": "The article maintains a neutral tone by focusing on factual details of the launch event without inserting subjective commentary."
 }}
 
 Left-leaning Example (for content: "Government announces new climate policies with a focus on renewable energy and social equity."):
 {{ 
   "heading": "Government Unveils Progressive Climate Policies",
-  "summary": "The government has introduced a series of climate policies emphasizing renewable energy investments and social equity. The measures are portrayed as transformative for environmental and social reform, though critics raise concerns about economic impacts.",
+  "summary": "The government has rolled out an ambitious set of climate policies aimed at boosting renewable energy and promoting social equity. The policy package includes significant investments in green infrastructure and incentives for sustainable practices, signaling a transformative approach to environmental and social reform.",
   "bias": "left-leaning",
-  "biasExplanation": "The article adopts a left-leaning perspective by emphasizing progressive policy benefits and social justice while downplaying potential economic drawbacks."
+  "biasExplanation": "The article adopts a left-leaning perspective by emphasizing the transformative potential of the new policies and their focus on social equity, while downplaying economic concerns."
 }}
 
 Right-leaning Example (for content: "Critics argue that the new tax reforms could hamper business growth and burden middle-class families."):
 {{ 
   "heading": "Controversy Over New Tax Reforms Raises Business Concerns",
-  "summary": "The new tax reforms have sparked debate among business leaders and economists, with concerns over potential negative impacts on economic growth and middle-class stability. The narrative is critical of the reforms and cautious about government intervention.",
+  "summary": "The introduction of new tax reforms has sparked widespread debate, with key stakeholders warning of potential negative impacts on economic growth and middle-class stability. The news event centers on concerns regarding increased regulatory burdens and a potential decline in business confidence.",
   "bias": "right-leaning",
-  "biasExplanation": "The article exhibits a right-leaning bias by focusing on the economic risks of the tax reforms and questioning their overall benefits, favoring fiscal conservatism."
+  "biasExplanation": "The article exhibits a right-leaning bias by focusing on the potential economic drawbacks and questioning the overall efficacy of the proposed fiscal measures."
 }}
 
 Content: {content}

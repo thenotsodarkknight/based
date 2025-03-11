@@ -37,11 +37,21 @@ export default function Home() {
                     value={vibe}
                 >
                     <option value="">All Vibes</option>
-                    <option value="Politician">Politician</option>
                     <option value="Tech Enthusiast">Tech Enthusiast</option>
+                    <option value="Politician">Politician</option>
                     <option value="Athlete">Athlete</option>
                     <option value="Influencer">Influencer</option>
                     <option value="Actor">Actor</option>
+                    <option value="Business Leader">Business Leader</option>
+                    <option value="Entrepreneur">Entrepreneur</option>
+                    <option value="Journalist">Journalist</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Activist">Activist</option>
+                    <option value="Economist">Economist</option>
+                    <option value="Cultural Icon">Cultural Icon</option>
+                    <option value="Celebrity">Celebrity</option>
+                    <option value="Artist">Artist</option>
+
                 </select>
             </nav>
 
