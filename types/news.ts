@@ -4,5 +4,4 @@ export interface NewsTopic {
     leftLinks: string[];
     rightLinks: string[];
     neutralLinks: string[];
-    lastUpdated: string; // Timestamp for caching
 }
