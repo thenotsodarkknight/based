@@ -1,13 +1,25 @@
 export interface NewsItem {
-    heading: string;         // Generated heading for the news
-    summary: string;         // Neutral summary of the news
+    heading: string;
+    summary: string;
     source: {
-        url: string;         // URL of the source article
-        name: string;        // Name of the source (e.g., "CNN")
-        bias: string;        // "left-leaning", "right-leaning", or "neutral"
-        biasExplanation: string; // Brief explanation of the bias
+        url: string;
+        name: string;
+        bias: string;
+        biasExplanation: string;
     };
-    lastUpdated: string;     // Timestamp of the news
+    lastUpdated: string;
 }
 
-export type NewsTopic = NewsItem[]; // Array of news items
+export type NewsTopic = NewsItem[];
+
+// Define the type for blob metadata returned by list()
+export interface BlobMetadata {
+    url: string;
+    pathname: string;
+    size: number;
+    uploadedAt: Date;
+    contentType: string;
+    contentDisposition: string;
+    downloadUrl: string;
+    cacheControl?: string;
+}

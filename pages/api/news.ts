@@ -1,18 +1,16 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 import OpenAI from "openai";
-import { NewsTopic } from "../../types/news";
+import { NewsTopic, BlobMetadata, NewsItem } from "../../types/news";
+import { put, list } from "@vercel/blob";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const NEWSAPI_KEY = process.env.NEWSAPI_KEY; // Add this to your .env file
+const NEWSAPI_KEY = process.env.NEWSAPI_KEY;
 
-// Global counter for OpenAI API calls
 let apiCallCount = 0;
 const MAX_API_CALLS = 300;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
-/**
- * Wraps OpenAI calls with a fallback if the API limit is reached.
- */
 async function safeOpenAICall(
     params: { model: string; messages: any[] },
     fallback: () => string
@@ -25,14 +23,13 @@ async function safeOpenAICall(
     return response.choices[0].message.content;
 }
 
-// Fetch news articles from NewsAPI
 async function fetchNewsArticles(query: string, pageSize: number = 5): Promise<any[]> {
     try {
         const response = await axios.get("https://newsapi.org/v2/everything", {
             params: {
-                q: query || "news", // Default to "news" if no query
-                sortBy: "popularity", // Fetch popular articles
-                pageSize: pageSize,
+                q: query || "news",
+                sortBy: "popularity",
+                pageSize,
                 apiKey: NEWSAPI_KEY,
             },
             timeout: 10000,
@@ -44,13 +41,11 @@ async function fetchNewsArticles(query: string, pageSize: number = 5): Promise<a
     }
 }
 
-// Process articles into NewsItems
 async function processArticles(articles: any[]): Promise<NewsTopic> {
     return Promise.all(
         articles.map(async (article) => {
             const content = article.content || article.description || article.title;
 
-            // Generate a heading for the news
             const heading = await safeOpenAICall(
                 {
                     model: "gpt-4o",
@@ -61,10 +56,9 @@ async function processArticles(articles: any[]): Promise<NewsTopic> {
                         },
                     ],
                 },
-                () => article.title || "News Event" // Fallback to article title
+                () => article.title || "News Event"
             );
 
-            // Generate a neutral summary for the news
             const summary = await safeOpenAICall(
                 {
                     model: "gpt-4o",
@@ -75,26 +69,25 @@ async function processArticles(articles: any[]): Promise<NewsTopic> {
                         },
                     ],
                 },
-                () => content.substring(0, 100) // Fallback to truncated content
+                () => content.substring(0, 100)
             );
 
-            // Classify the political leaning of the article
             const biasResult = await safeOpenAICall(
                 {
                     model: "gpt-4o",
                     messages: [
                         {
                             role: "user",
-                            content: `Classify the political leaning of this article as left-leaning, right-leaning, or neutral, and provide a brief explanation: ${content}`,
+                            content: `Classify the political or editorial bias of this article (e.g., left-leaning, right-leaning, neutral, sensationalist, etc.) and provide a brief explanation: ${content}`,
                         },
                     ],
                 },
-                () => "neutral\nNo analysis available due to API limit." // Fallback
+                () => "neutral\nNo analysis available due to API limit."
             );
             const [bias, ...explanation] = biasResult.split("\n");
             const biasExplanation = explanation.join("\n").trim();
 
-            return {
+            const newsItem: NewsItem = {
                 heading: heading.trim(),
                 summary: summary.trim(),
                 source: {
@@ -105,26 +98,62 @@ async function processArticles(articles: any[]): Promise<NewsTopic> {
                 },
                 lastUpdated: article.publishedAt || new Date().toISOString(),
             };
+
+            const cacheKey = `news/${encodeURIComponent(article.url)}.json`;
+            await put(cacheKey, JSON.stringify(newsItem), {
+                access: "public",
+                token: process.env.BLOB_READ_WRITE_TOKEN,
+                cacheControlMaxAge: CACHE_DURATION / 1000,
+            });
+
+            return newsItem;
         })
     );
 }
 
+async function fetchAllCachedNews(): Promise<NewsTopic> {
+    try {
+        const { blobs } = await list({
+            prefix: "news/",
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+        });
+        const newsItems = await Promise.all(
+            blobs.map(async (blob: BlobMetadata) => {
+                const response = await fetch(blob.url);
+                return (await response.json()) as NewsItem;
+            })
+        );
+        return newsItems
+            .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+            .slice(0, 5);
+    } catch (error: any) {
+        console.error("Error fetching cached news:", error);
+        return [];
+    }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    apiCallCount = 0; // Reset counter per request
+    apiCallCount = 0;
 
     try {
         const { vibe = "" } = req.query;
-        const query = vibe ? vibe.toString() : "news";
+        let newsItems: NewsTopic;
 
-        // Fetch 5 latest/popular articles based on the persona filter
-        const articles = await fetchNewsArticles(query, 5);
-        if (!articles.length) {
-            console.warn("No articles fetched for query:", query);
-            return res.status(200).json([]);
+        if (!vibe) {
+            newsItems = await fetchAllCachedNews();
+            if (newsItems.length === 0) {
+                console.warn("No cached news found, falling back to default query.");
+                newsItems = await processArticles(await fetchNewsArticles("news"));
+            }
+        } else {
+            const query = vibe.toString();
+            const articles = await fetchNewsArticles(query);
+            if (!articles.length) {
+                console.warn("No articles fetched for query:", query);
+                return res.status(200).json([]);
+            }
+            newsItems = await processArticles(articles);
         }
-
-        // Process articles into NewsItems
-        const newsItems: NewsTopic = await processArticles(articles);
 
         res.status(200).json(newsItems);
     } catch (error: any) {
