@@ -21,7 +21,7 @@ export default function ArticleDetail() {
         if (url) {
             const fetchAnalysis = async () => {
                 setLoading(true);
-                const content = url; // Ideally fetch full text, but using URL as placeholder
+                const content = url;
                 const response = await openai.chat.completions.create({
                     model: "gpt-4o",
                     messages: [
@@ -35,7 +35,6 @@ export default function ArticleDetail() {
                 const result = response.choices[0].message.content;
                 const [leaning, ...explanation] = result.split("\n");
 
-                // Fetch summary from Vercel Blob
                 const cacheKey = `summaries/${encodeURIComponent(url as string)}.txt`;
                 let summary = "Summary not available";
                 try {
@@ -57,27 +56,50 @@ export default function ArticleDetail() {
         }
     }, [url]);
 
-    if (loading) return <p className="p-4">Loading...</p>;
-    if (!analysis) return <p className="p-4">No analysis available.</p>;
+    if (loading)
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <p className="text-textSecondary text-xl animate-pulse">Loading...</p>
+            </div>
+        );
+    if (!analysis)
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <p className="text-textSecondary text-xl">No analysis available.</p>
+            </div>
+        );
 
     return (
-        <div className="p-4 max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold">Detailed Analysis</h1>
-            <p className="mt-2">
-                <strong>URL:</strong>{" "}
-                <a href={url as string} className="text-blue-500" target="_blank" rel="noopener noreferrer">
-                    {url}
-                </a>
-            </p>
-            <p className="mt-2">
-                <strong>Leaning:</strong> {analysis.leaning}
-            </p>
-            <p className="mt-2">
-                <strong>Explanation:</strong> {analysis.explanation}
-            </p>
-            <p className="mt-2">
-                <strong>Summary:</strong> {analysis.summary}
-            </p>
+        <div className="min-h-screen p-6 flex items-center justify-center">
+            <div className="max-w-2xl w-full bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8">
+                <h1 className="text-3xl font-bold text-textPrimary">Detailed Analysis</h1>
+                <div className="mt-6 space-y-4">
+                    <p>
+                        <strong className="text-textSecondary">URL:</strong>{" "}
+                        <a href={url as string} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                            {url}
+                        </a>
+                    </p>
+                    <p>
+                        <strong className="text-textSecondary">Leaning:</strong>{" "}
+                        <span className="text-textPrimary">{analysis.leaning}</span>
+                    </p>
+                    <p>
+                        <strong className="text-textSecondary">Explanation:</strong>{" "}
+                        <span className="text-textPrimary">{analysis.explanation}</span>
+                    </p>
+                    <p>
+                        <strong className="text-textSecondary">Summary:</strong>{" "}
+                        <span className="text-textPrimary">{analysis.summary}</span>
+                    </p>
+                </div>
+                <button
+                    onClick={() => router.back()}
+                    className="mt-6 w-full py-3 bg-primary text-white font-semibold rounded-full hover:bg-opacity-90 transition-all"
+                >
+                    Back to Feed
+                </button>
+            </div>
         </div>
     );
 }

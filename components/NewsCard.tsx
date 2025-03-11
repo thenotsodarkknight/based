@@ -8,43 +8,66 @@ interface Props {
 
 const NewsCard: React.FC<Props> = ({ article }) => {
     return (
-        <div className="p-6 rounded-xl shadow-lg bg-white dark:bg-gray-800 max-w-md mx-auto h-[80vh] flex flex-col justify-between">
+        <div className="flex flex-col justify-between h-[90vh] w-full max-w-md mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-6 transform transition-all duration-300 hover:scale-105">
+            {/* Header */}
             <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{article.title}</h2>
-                <p className="mt-2 text-gray-700 dark:text-gray-300">{article.summary}</p>
+                <h2 className="text-2xl font-bold text-textPrimary leading-tight">{article.title}</h2>
+                <p className="mt-4 text-textSecondary text-lg">{article.summary}</p>
             </div>
-            <div className="mt-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Read More:</h3>
-                <div className="grid grid-cols-3 gap-2 mt-2">
+
+            {/* Links Section */}
+            <div className="mt-6">
+                <h3 className="text-lg font-semibold text-textPrimary">Perspectives</h3>
+                <div className="grid grid-cols-3 gap-4 mt-3">
                     <div>
-                        <p className="font-medium text-red-500">Left</p>
+                        <p className="text-leftBias font-medium">Left</p>
                         {article.leftLinks.map((link, idx) => (
-                            <a key={idx} href={link} className="text-red-400 block truncate" target="_blank" rel="noopener noreferrer">
+                            <a
+                                key={idx}
+                                href={link}
+                                className="text-leftBias text-sm opacity-80 hover:opacity-100 transition-opacity truncate block"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
                                 Source {idx + 1}
                             </a>
                         ))}
                     </div>
                     <div>
-                        <p className="font-medium text-blue-500">Right</p>
+                        <p className="text-rightBias font-medium">Right</p>
                         {article.rightLinks.map((link, idx) => (
-                            <a key={idx} href={link} className="text-blue-400 block truncate" target="_blank" rel="noopener noreferrer">
+                            <a
+                                key={idx}
+                                href={link}
+                                className="text-rightBias text-sm opacity-80 hover:opacity-100 transition-opacity truncate block"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
                                 Source {idx + 1}
                             </a>
                         ))}
                     </div>
                     <div>
-                        <p className="font-medium text-gray-500">Neutral</p>
+                        <p className="text-neutralBias font-medium">Neutral</p>
                         {article.neutralLinks.map((link, idx) => (
-                            <a key={idx} href={link} className="text-gray-400 block truncate" target="_blank" rel="noopener noreferrer">
+                            <a
+                                key={idx}
+                                href={link}
+                                className="text-neutralBias text-sm opacity-80 hover:opacity-100 transition-opacity truncate block"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
                                 Source {idx + 1}
                             </a>
                         ))}
                     </div>
                 </div>
             </div>
+
+            {/* Button */}
             <Link href={`/article?url=${encodeURIComponent(article.url)}`}>
-                <button className="mt-4 w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    Detailed Analysis
+                <button className="mt-6 w-full py-3 bg-primary text-white font-semibold rounded-full hover:bg-opacity-90 transition-all">
+                    Dive Deeper
                 </button>
             </Link>
         </div>

@@ -20,24 +20,35 @@ export default function Home() {
     }, [vibe]);
 
     return (
-        <div className="container mx-auto p-4">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Based - LLM News</h1>
-            <select
-                onChange={(e) => setVibe(e.target.value)}
-                className="mt-2 p-2 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-                <option value="">All News</option>
-                <option value="Tech Enthusiast">Tech Enthusiast</option>
-                <option value="Athlete">Athlete</option>
-                <option value="Influencer">Influencer</option>
-                <option value="Actor">Actor</option>
-            </select>
+        <div className="min-h-screen relative">
+            {/* Floating Vibe Selector */}
+            <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10">
+                <select
+                    onChange={(e) => setVibe(e.target.value)}
+                    className="p-3 bg-primary text-white rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                >
+                    <option value="">All Vibes</option>
+                    <option value="Tech Enthusiast">Tech Enthusiast</option>
+                    <option value="Athlete">Athlete</option>
+                    <option value="Influencer">Influencer</option>
+                    <option value="Actor">Actor</option>
+                </select>
+            </div>
+
+            {/* Header */}
+            <h1 className="text-4xl font-extrabold text-center pt-20 pb-8">Based</h1>
+
+            {/* Content */}
             {loading ? (
-                <p className="mt-4 text-gray-700 dark:text-gray-300">Loading...</p>
+                <div className="flex items-center justify-center h-screen">
+                    <p className="text-textSecondary text-xl animate-pulse">Loading...</p>
+                </div>
             ) : articles.length ? (
                 <NewsFeed articles={articles} />
             ) : (
-                <p className="mt-4 text-gray-700 dark:text-gray-300">No articles found.</p>
+                <div className="flex items-center justify-center h-screen">
+                    <p className="text-textSecondary text-xl">No articles found.</p>
+                </div>
             )}
         </div>
     );
