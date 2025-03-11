@@ -68,7 +68,7 @@ function clusterArticlesByTopic(articles: any[]): { [key: string]: any[] } {
 }
 
 // Helper to classify articles in batches with a concurrency limit.
-async function classifyArticles(articles: any[], concurrency: number = 5): Promise<{ url: string; bias: string }[]> {
+async function classifyArticles(articles: any[], concurrency: number = 10): Promise<{ url: string; bias: string }[]> {
     const results: { url: string; bias: string }[] = [];
     for (let i = 0; i < articles.length; i += concurrency) {
         const batch = articles.slice(i, i + concurrency);
@@ -108,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const cacheDuration = 24 * 60 * 60 * 1000; // 24 hours
 
         // Fetch a small set of initial articles to keep processing fast.
-        const initialArticles = await fetchArticles(vibe ? vibe.toString() : "news", 5);
+        const initialArticles = await fetchArticles(vibe ? vibe.toString() : "news", 3);
         console.log("Fetched articles count:", initialArticles.length);
         if (!initialArticles || initialArticles.length === 0) {
             console.error("No articles fetched. Check your query.");
@@ -142,7 +142,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                     () => tempTopic // fallback: use default cluster name if limit reached
                 )).trim();
-
                 console.log("Generated topic:", topic);
 
                 const cacheKey = `topics/${encodeURIComponent(topic)}.json`;
@@ -165,7 +164,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
 
                 // Fetch a few additional articles to broaden the sample.
-                const additionalArticles = await fetchArticles(topic, 10);
+                const additionalArticles = await fetchArticles(topic, 5);
                 const allArticles = [...topicArticles, ...additionalArticles];
                 const allContent = allArticles
                     .map((article: any) => article.content || article.description || article.title)
@@ -186,8 +185,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     () => allContent.substring(0, 200) // fallback: use truncated content
                 )).trim();
 
-                // Classify articles' bias using our helper (this may use several API calls)
-                const articlesWithBias = await classifyArticles(allArticles, 5);
+                // Classify articles' bias using our helper.
+                const articlesWithBias = await classifyArticles(allArticles, 10);
 
                 const leftLinks: string[] = [];
                 const rightLinks: string[] = [];
