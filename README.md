@@ -159,14 +159,7 @@ Future Enhancements
 
 ---------------
 
-Demo
--------------------
-
-<video controls width="100%">
-<source src="https://github.com/user-attachments/assets/74db110e-641a-4974-961a-934134d5c992" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-
+## [Demo](https://github.com/user-attachments/assets/74db110e-641a-4974-961a-934134d5c992): 
 
 Built with ❤️ by Abeen Bhattacharya
 
