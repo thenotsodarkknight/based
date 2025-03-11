@@ -10,8 +10,8 @@ import { z } from "zod";
 // Define the output structure type using Zod
 const AIOutputSchema = z.object({
     heading: z.string().describe("A descriptive heading for the news event related to the article, no length limit"),
-    summary: z.string().describe("A detailed, neutral summary of the news event behind the article. Focus on the core news event, providing context, implications, and key facts without reiterating the article's subjective evaluation."),
-    bias: z.string().describe("A single keyword bias tag (e.g., neutral, left-leaning, right-leaning, sensationalist)"),
+    summary: z.string().describe("A detailed, neutral summary of the news event behind the article. Focus on the core event, context, implications, and key facts without reiterating the article’s subjective evaluation."),
+    bias: z.string().describe("A single keyword that captures the bias of the article writer. This can be any descriptive term (e.g., neutral, left-leaning, right-leaning, sensationalist, etc.)"),
     biasExplanation: z.string().describe("An explanation of the article writer's perspective or biases, based on tone, word choice, and focus, no length limit"),
 });
 
@@ -31,7 +31,7 @@ const AI_MODELS = {
     openai: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-4o-mini"],
     anthropic: ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"],
 };
-const DEFAULT_MODEL = "gpt-4o-mini";
+const DEFAULT_MODEL = "gpt-4o";
 
 // Initialize LLMs with higher max_tokens
 const openai = new OpenAI({ apiKey: openaiApiKey, temperature: 0.5, maxTokens: 600 });
@@ -93,7 +93,7 @@ async function safeAICall(
         } catch (error: any) {
             console.error(`Error with model ${model}:`, error.message);
             // Append error details to prompt for the next call
-            prompt = `${prompt}\n\nPrevious attempt failed with error: ${error.message}. Ensure the output strictly adheres to the schema: heading (no length limit), summary (detailed and focused solely on the news event), bias (single keyword), biasExplanation (no length limit).`;
+            prompt = `${prompt}\n\nPrevious attempt failed with error: ${error.message}. Ensure the output strictly adheres to the schema: heading (no length limit), summary (detailed and focused solely on the news event), bias (any single keyword), biasExplanation (no length limit).`;
             // Continue looping to recall the AI
         } finally {
             clearTimeout(timeoutId);
@@ -121,11 +121,11 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
 
     const prompt = new PromptTemplate({
         template: `
-Based on the following content, provide the requested outputs in JSON format. Use the examples below as a guide to meet the format requirements. There are no length limits for heading, summary, or biasExplanation, but bias must be a single keyword.
+Based on the following content, provide the requested outputs in JSON format. Use the examples below as a guide to meet the format requirements. There are no length limits for heading, summary, or biasExplanation, but bias must be a single keyword that captures the perspective. The bias can be any term that best describes the writer's stance.
 
 - heading: A descriptive heading for the news event related to the article.
 - summary: A detailed, neutral summary of the news event behind the article. Focus on describing the core event, context, implications, and key facts without summarizing the article’s subjective evaluation.
-- bias: A single keyword bias tag (e.g., neutral, left-leaning, right-leaning).
+- bias: A single keyword that captures the bias of the article writer. This can be any descriptive term (e.g., neutral, left-leaning, right-leaning, sensationalist, etc.).
 - biasExplanation: An explanation of the article writer's perspective or biases, based on tone, word choice, and focus.
 
 Examples:
@@ -133,7 +133,7 @@ Examples:
 Neutral Example (for content: "New Tesla Model Y launched with advanced autopilot"):
 {{ 
   "heading": "Tesla Unveils Model Y with Advanced Autopilot Features",
-  "summary": "Tesla has officially launched its new Model Y, an electric SUV that features advanced autopilot capabilities, an improved battery range, and enhanced safety systems. The launch event showcased significant updates in production scalability and innovative software enhancements, positioning Tesla to capture a larger share of the competitive electric vehicle market. Industry analysts see this as a pivotal moment in the rapidly evolving automotive landscape.",
+  "summary": "Tesla has officially launched its new Model Y, an electric SUV that features advanced autopilot capabilities, an improved battery range, and enhanced safety systems. The launch event showcased significant updates in production scalability and innovative software enhancements, positioning Tesla to capture a larger share of the competitive electric vehicle market. Industry analysts see this as a pivotal moment in the automotive landscape.",
   "bias": "neutral",
   "biasExplanation": "The article maintains a neutral tone by focusing on factual details of the launch event without inserting subjective commentary."
 }}
