@@ -10,7 +10,7 @@ import { z } from "zod";
 // Define the output structure type using Zod
 const AIOutputSchema = z.object({
     heading: z.string().describe("A descriptive heading for the news event related to the article, no length limit"),
-    summary: z.string().describe("A detailed, neutral summary of the news event behind the article. Focus on the core event, context, implications, and key facts without reiterating the article’s subjective evaluation."),
+    summary: z.string().describe("A detailed, neutral summary of the news event behind the article. Focus on describing the core event, context, implications, and key facts without summarizing the article’s subjective evaluation."),
     bias: z.string().describe("A single keyword that captures the bias of the article writer. This can be any descriptive term (e.g., neutral, left-leaning, right-leaning, sensationalist, etc.)"),
     biasExplanation: z.string().describe("An explanation of the article writer's perspective or biases, based on tone, word choice, and focus, no length limit"),
 });
@@ -61,7 +61,9 @@ async function safeAICall(
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
-            let llm = model.startsWith("gpt-") || model.startsWith("o") ? openai : anthropic;
+            let llm = model.startsWith("o3-") || model.startsWith("o1-") || model.startsWith("gpt-")
+                ? openai
+                : anthropic;
             const response = await llm.invoke(prompt, { signal: controller.signal });
 
             let responseText = "";
@@ -81,14 +83,22 @@ async function safeAICall(
                 continue;
             }
 
-            // Extract the JSON substring from the response to avoid extra text/formatting issues
-            const jsonMatch = responseText.match(/{[\s\S]*}/);
-            if (!jsonMatch) {
-                console.error("No valid JSON found in model response, retrying...");
+            // Improved extraction: find first "{" and last "}" to isolate JSON.
+            const firstBrace = responseText.indexOf("{");
+            const lastBrace = responseText.lastIndexOf("}");
+            if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+                console.error("Could not locate JSON boundaries in model response, retrying...");
                 continue;
             }
-            const jsonString = jsonMatch[0];
-            const parsedResponse = AIOutputSchema.parse(JSON.parse(jsonString));
+            const jsonString = responseText.substring(firstBrace, lastBrace + 1);
+
+            let parsedResponse: AIOutput;
+            try {
+                parsedResponse = AIOutputSchema.parse(JSON.parse(jsonString));
+            } catch (jsonError: any) {
+                console.error("JSON parsing failed, retrying...", jsonError.message);
+                continue;
+            }
             return parsedResponse;
         } catch (error: any) {
             console.error(`Error with model ${model}:`, error.message);
@@ -116,7 +126,11 @@ async function fetchNewsArticles(query: string, pageSize: number = 5): Promise<a
     }
 }
 
-async function processArticles(articles: any[], model: string): Promise<NewsTopic> {
+/**
+ * Processes articles, stores a global copy and, if a persona is provided,
+ * also stores a persona-specific copy—merging with any existing item for the same article.
+ */
+async function processArticles(articles: any[], model: string, vibe?: string): Promise<NewsTopic> {
     const startTime = Date.now();
 
     const prompt = new PromptTemplate({
@@ -170,31 +184,69 @@ Output format:
     const results = await Promise.all(
         articles.map(async (article) => {
             const content = article.content || article.description || article.title;
-            const { heading, summary, bias, biasExplanation } = await safeAICall(
-                model,
-                await prompt.format({ content }),
-                article
-            );
-
+            const aiOutput = await safeAICall(model, await prompt.format({ content }), article);
             const newsItem: NewsItem = {
-                heading: heading.trim(),
-                summary: summary.trim(),
+                heading: aiOutput.heading.trim(),
+                summary: aiOutput.summary.trim(),
                 source: {
                     url: article.url,
                     name: article.source.name,
-                    bias: bias.trim(),
-                    biasExplanation: biasExplanation.trim(),
+                    bias: aiOutput.bias.trim(),
+                    biasExplanation: aiOutput.biasExplanation.trim(),
                 },
                 lastUpdated: article.publishedAt || new Date().toISOString(),
                 modelUsed: model,
             };
 
-            const cacheKey = `news/global/${encodeURIComponent(article.url)}-${Date.now()}.json`;
-            await put(cacheKey, JSON.stringify(newsItem), {
+            // Store global news item with a stable key (based on article URL)
+            const globalKey = `news/global/${encodeURIComponent(article.url)}.json`;
+            await put(globalKey, JSON.stringify(newsItem), {
                 access: "public",
                 token: process.env.BLOB_READ_WRITE_TOKEN,
                 cacheControlMaxAge: CACHE_DURATION / 1000,
             });
+
+            // If a persona (vibe) is provided, store/update persona-specific blob
+            if (vibe && vibe.trim() !== "") {
+                const personaKey = `news/personas/${encodeURIComponent(vibe)}/${encodeURIComponent(article.url)}.json`;
+                let personaItem: any = null;
+                try {
+                    // List blobs with this exact key; if it exists, we assume it is the same item.
+                    const { blobs } = await list({
+                        prefix: personaKey,
+                        token: process.env.BLOB_READ_WRITE_TOKEN,
+                    });
+                    if (blobs && blobs.length > 0) {
+                        const res = await fetch(blobs[0].url);
+                        personaItem = await res.json();
+                    }
+                } catch (e) {
+                    console.error("Error fetching existing persona blob:", e);
+                }
+                if (personaItem) {
+                    // If the item already exists, merge the vibe information.
+                    if (!personaItem.vibes || !Array.isArray(personaItem.vibes)) {
+                        personaItem.vibes = [];
+                    }
+                    if (!personaItem.vibes.includes(vibe)) {
+                        personaItem.vibes.push(vibe);
+                    }
+                    // Optionally, you could update other fields if needed.
+                    await put(personaKey, JSON.stringify(personaItem), {
+                        access: "public",
+                        token: process.env.BLOB_READ_WRITE_TOKEN,
+                        cacheControlMaxAge: CACHE_DURATION / 1000,
+                    });
+                } else {
+                    // Create a new persona-specific news item with a "vibes" field.
+                    const personaNewsItem = { ...newsItem, vibes: [vibe] };
+                    await put(personaKey, JSON.stringify(personaNewsItem), {
+                        access: "public",
+                        token: process.env.BLOB_READ_WRITE_TOKEN,
+                        cacheControlMaxAge: CACHE_DURATION / 1000,
+                    });
+                }
+            }
 
             if (Date.now() - startTime > MAX_TOTAL_TIME_MS) throw new Error("Processing exceeded 5-minute limit");
             return newsItem;
@@ -216,9 +268,8 @@ async function fetchAllCachedNews(): Promise<NewsTopic> {
                 return (await response.json()) as NewsItem;
             })
         );
-        const sortedItems = newsItems
-            .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
-            .slice(0, 5);
+        // Return all global news items sorted by lastUpdated
+        const sortedItems = newsItems.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
         if (Date.now() - startTime > MAX_TOTAL_TIME_MS) throw new Error("Cache fetch exceeded 5-minute limit");
         return sortedItems;
     } catch (error: any) {
@@ -238,8 +289,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         let newsItems: NewsTopic;
-
-        if (!vibe) {
+        if (!vibe || vibe.toString().trim() === "") {
             newsItems = await fetchAllCachedNews();
             if (newsItems.length === 0) {
                 console.warn("No cached news found, falling back to default query.");
@@ -252,7 +302,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 console.warn("No articles fetched for query:", query);
                 return res.status(200).json([]);
             }
-            newsItems = await processArticles(articles, model as string);
+            newsItems = await processArticles(articles, model as string, vibe as string);
         }
 
         if (Date.now() - startTime > MAX_TOTAL_TIME_MS) {
