@@ -7,6 +7,7 @@ import { NewsTopic, BlobMetadata, NewsItem } from "../../types/news";
 import { put, list } from "@vercel/blob";
 import { z } from "zod";
 
+
 // Define the output structure type using Zod
 const AIOutputSchema = z.object({
     heading: z.string().describe("A descriptive heading for the news event related to the article, no length limit"),
@@ -146,22 +147,22 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
             - biasExplanation: An explanation of the article writer's perspective or biases, based on tone, word choice, and focus, no length limit.
 
             Example (for content: "New Tesla Model Y launched with advanced autopilot"):
-            {
+            {{
                 "heading": "Tesla Unveils Model Y with Advanced Autopilot Features",
                 "summary": "Tesla has launched the Model Y, an electric SUV equipped with advanced autopilot technology that enhances safety and navigation. The vehicle boasts an improved battery range and a sleek, modern design, appealing to eco-conscious drivers. The launch event emphasized production scalability and introduced new software updates, with industry analysts highlighting its strong market potential. Reception has been largely positive, though some discussions focus on its pricing competitiveness compared to other electric vehicles, as Tesla seeks to solidify its dominance in the EV sector.",
                 "bias": "neutral",
                 "biasExplanation": "The writer maintains a neutral perspective throughout the article, focusing on factual details about the Model Y's features, market reception, and Tesla's goals. The tone is informative and balanced, presenting both the vehicle's strengths, such as advanced technology, and potential challenges, like pricing debates, without favoring one side. The language avoids emotional or sensational phrasing, aiming to educate readers about the launch and its implications in the electric vehicle industry with an objective approach."
-            }
+            }}
 
             Content: {content}
 
             Output format:
-            {
+            {{
                 "heading": "...",
                 "summary": "...",
                 "bias": "...",
                 "biasExplanation": "..."
-            }
+            }}
         `,
         inputVariables: ["content"],
     });
