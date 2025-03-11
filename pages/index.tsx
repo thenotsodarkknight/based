@@ -78,11 +78,11 @@ export default function Home() {
                             <option key={m} value={m}>{m}</option>
                         ))}
                     </optgroup>
-                    <optgroup label="Anthropic">
-                        {["claude-3-5-haiku-20241022", "claude-3-haiku-20240307"].map(m => (
+                    {/* <optgroup label="Anthropic">
+                        {["claude-3-5-haiku", "claude-3-haiku-20240307"].map(m => (
                             <option key={m} value={m}>{m}</option>
                         ))}
-                    </optgroup>
+                    </optgroup> */}
                 </select>
             </footer>
         </div>

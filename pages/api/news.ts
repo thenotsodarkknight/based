@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
-import { OpenAI } from "@langchain/openai";
-import { ChatAnthropic } from "@langchain/anthropic";
+import OpenAI from "openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { NewsTopic, BlobMetadata, NewsItem } from "../../types/news";
 import { put, list } from "@vercel/blob";
@@ -15,11 +14,22 @@ const AIOutputSchema = z.object({
     biasExplanation: z.string().describe("An explanation of the article writer's perspective or biases, based on tone, word choice, and focus, no length limit"),
 });
 
-// Use Zod inference for AIOutput type
 type AIOutput = z.infer<typeof AIOutputSchema>;
 
+// JSON Schema for OpenAI Structured Outputs
+const AIOutputJsonSchema = {
+    type: "object",
+    properties: {
+        heading: { type: "string", description: "A descriptive heading for the news event related to the article, no length limit" },
+        summary: { type: "string", description: "A detailed, neutral summary of the news event behind the article. Focus on describing the core event, context, implications, and key facts without summarizing the article’s subjective evaluation." },
+        bias: { type: "string", description: "A single keyword that captures the bias of the article writer (e.g., neutral, left-leaning, right-leaning, sensationalist, etc.)" },
+        biasExplanation: { type: "string", description: "An explanation of the article writer's perspective or biases, based on tone, word choice, and focus, no length limit" },
+    },
+    required: ["heading", "summary", "bias", "biasExplanation"],
+    additionalProperties: false,
+};
+
 const openaiApiKey = process.env.OPENAI_API_KEY;
-const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
 const newsapiKey = process.env.NEWSAPI_KEY;
 
 let apiCallCount = 0;
@@ -29,13 +39,10 @@ const MAX_TOTAL_TIME_MS = 5 * 60 * 1000;
 
 const AI_MODELS = {
     openai: ["o3-mini", "o1-mini", "gpt-4o-mini"],
-    anthropic: ["claude-3-5-haiku-20241022", "claude-3-haiku-20240307"],
 };
 const DEFAULT_MODEL = "o3-mini";
 
-// Initialize LLMs with higher max_tokens
-const openai = new OpenAI({ apiKey: openaiApiKey, temperature: 0.5, maxTokens: 600 });
-const anthropic = new ChatAnthropic({ apiKey: anthropicApiKey, temperature: 0.5, maxTokens: 600 });
+const openai = new OpenAI({ apiKey: openaiApiKey });
 
 async function safeAICall(
     model: string,
@@ -43,7 +50,6 @@ async function safeAICall(
     article: any,
     timeoutMs: number = 30000
 ): Promise<AIOutput> {
-    // Keep recalling the AI until we get valid output
     while (true) {
         if (apiCallCount >= MAX_API_CALLS) {
             console.warn(`API call limit (${MAX_API_CALLS}) reached, using fallback`);
@@ -52,7 +58,7 @@ async function safeAICall(
                 heading: article.title || "News Event",
                 summary: content || "No summary available from the article content.",
                 bias: "neutral",
-                biasExplanation: `The article titled "${article.title || 'unknown'}" appears neutral due to limited processing. The content, starting with "${content.slice(0, 20)}...", focuses on factual reporting without evident editorial slant.`
+                biasExplanation: `The article titled "${article.title || 'unknown'}" appears neutral due to limited processing. The content, starting with "${content.slice(0, 20)}...", focuses on factual reporting without evident editorial slant.`,
             };
         }
         apiCallCount++;
@@ -61,50 +67,40 @@ async function safeAICall(
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
-            let llm = model.startsWith("o3-") || model.startsWith("o1-") || model.startsWith("gpt-")
-                ? openai
-                : anthropic;
-            const response = await llm.invoke(prompt, { signal: controller.signal });
-
-            let responseText = "";
-            if (typeof response === "string") {
-                responseText = response;
-            } else if (Array.isArray(response.content)) {
-                const firstContent = response.content[0];
-                if (firstContent && "type" in firstContent && firstContent.type === "text") {
-                    responseText = firstContent.text || "";
-                }
-            } else if (typeof response.content === "string") {
-                responseText = response.content;
+            if (!AI_MODELS.openai.includes(model)) {
+                throw new Error(`Model ${model} not supported. Use one of ${JSON.stringify(AI_MODELS.openai)}`);
             }
 
+            const response = await openai.chat.completions.create(
+                {
+                    model,
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0.5,
+                    max_tokens: 1000,
+                    response_format: {
+                        type: "json_schema",
+                        json_schema: {
+                            name: "news_analysis",
+                            schema: AIOutputJsonSchema,
+                            strict: true,
+                        },
+                    },
+                },
+            );
+
+            const responseText = response.choices[0]?.message.content;
             if (!responseText) {
-                console.error(`No valid response text from model ${model}, retrying...`);
+                console.error(`No content in response from model ${model}:`, response);
                 continue;
             }
 
-            // Improved extraction: find first "{" and last "}" to isolate JSON.
-            const firstBrace = responseText.indexOf("{");
-            const lastBrace = responseText.lastIndexOf("}");
-            if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-                console.error("Could not locate JSON boundaries in model response, retrying...");
-                continue;
-            }
-            const jsonString = responseText.substring(firstBrace, lastBrace + 1);
-
-            let parsedResponse: AIOutput;
-            try {
-                parsedResponse = AIOutputSchema.parse(JSON.parse(jsonString));
-            } catch (jsonError: any) {
-                console.error("JSON parsing failed, retrying...", jsonError.message);
-                continue;
-            }
+            console.log("Raw response from OpenAI:", responseText);
+            const parsedResponse = AIOutputSchema.parse(JSON.parse(responseText));
             return parsedResponse;
         } catch (error: any) {
             console.error(`Error with model ${model}:`, error.message);
-            // Append error details to prompt for the next call
-            prompt = `${prompt}\n\nPrevious attempt failed with error: ${error.message}. Ensure the output strictly adheres to the schema: heading (no length limit), summary (detailed and focused solely on the news event), bias (any single keyword), biasExplanation (no length limit).`;
-            // Continue looping to recall the AI
+            prompt = `${prompt}\n\nPrevious attempt failed: ${error.message}. Ensure output matches the schema: heading, summary, bias (single keyword), biasExplanation.`;
+            continue;
         } finally {
             clearTimeout(timeoutId);
         }
@@ -126,58 +122,20 @@ async function fetchNewsArticles(query: string, pageSize: number = 5): Promise<a
     }
 }
 
-/**
- * Processes articles, stores a global copy and, if a persona is provided,
- * also stores a persona-specific copy—merging with any existing item for the same article.
- */
 async function processArticles(articles: any[], model: string, vibe?: string): Promise<NewsTopic> {
     const startTime = Date.now();
 
     const prompt = new PromptTemplate({
         template: `
-Based on the following content, provide the requested outputs in JSON format. Use the examples below as a guide to meet the format requirements. There are no length limits for heading, summary, or biasExplanation, but bias must be a single keyword that captures the perspective. The bias can be any term that best describes the writer's stance.
-
-- heading: A descriptive heading for the news event related to the article.
-- summary: A detailed, neutral summary of the news event behind the article. Focus on describing the core event, context, implications, and key facts without summarizing the article’s subjective evaluation.
-- bias: A single keyword that captures the bias of the article writer. This can be any descriptive term (e.g., neutral, left-leaning, right-leaning, sensationalist, etc.).
-- biasExplanation: An explanation of the article writer's perspective or biases, based on tone, word choice, and focus.
+Based on the following content, return the output in strict JSON format matching the schema: {"heading": string, "summary": string, "bias": string (single keyword), "biasExplanation": string}. Do not include any text outside the JSON object.
 
 Examples:
-
-Neutral Example (for content: "New Tesla Model Y launched with advanced autopilot"):
-{{ 
-  "heading": "Tesla Unveils Model Y with Advanced Autopilot Features",
-  "summary": "Tesla has officially launched its new Model Y, an electric SUV that features advanced autopilot capabilities, an improved battery range, and enhanced safety systems. The launch event showcased significant updates in production scalability and innovative software enhancements, positioning Tesla to capture a larger share of the competitive electric vehicle market. Industry analysts see this as a pivotal moment in the automotive landscape.",
-  "bias": "neutral",
-  "biasExplanation": "The article maintains a neutral tone by focusing on factual details of the launch event without inserting subjective commentary."
-}}
-
-Left-leaning Example (for content: "Government announces new climate policies with a focus on renewable energy and social equity."):
-{{ 
-  "heading": "Government Unveils Progressive Climate Policies",
-  "summary": "The government has rolled out an ambitious set of climate policies aimed at boosting renewable energy and promoting social equity. The policy package includes significant investments in green infrastructure and incentives for sustainable practices, signaling a transformative approach to environmental and social reform.",
-  "bias": "left-leaning",
-  "biasExplanation": "The article adopts a left-leaning perspective by emphasizing the transformative potential of the new policies and their focus on social equity, while downplaying economic concerns."
-}}
-
-Right-leaning Example (for content: "Critics argue that the new tax reforms could hamper business growth and burden middle-class families."):
-{{ 
-  "heading": "Controversy Over New Tax Reforms Raises Business Concerns",
-  "summary": "The introduction of new tax reforms has sparked widespread debate, with key stakeholders warning of potential negative impacts on economic growth and middle-class stability. The news event centers on concerns regarding increased regulatory burdens and a potential decline in business confidence.",
-  "bias": "right-leaning",
-  "biasExplanation": "The article exhibits a right-leaning bias by focusing on the potential economic drawbacks and questioning the overall efficacy of the proposed fiscal measures."
-}}
+{"heading": "Tesla Unveils Model Y with Advanced Autopilot Features","summary": "Tesla has officially launched its new Model Y, an electric SUV that features advanced autopilot capabilities, an improved battery range, and enhanced safety systems. The launch event showcased significant updates in production scalability and innovative software enhancements, positioning Tesla to capture a larger share of the competitive electric vehicle market. Industry analysts see this as a pivotal moment in the automotive landscape.","bias": "neutral","biasExplanation": "The article maintains a neutral tone by focusing on factual details of the launch event without inserting subjective commentary"}
+{"heading": "Government Unveils Progressive Climate Policies","summary": "The government has rolled out an ambitious set of climate policies aimed at boosting renewable energy and promoting social equity. The policy package includes significant investments in green infrastructure and incentives for sustainable practices, signaling a transformative approach to environmental and social reform.","bias": "left-leaning","biasExplanation": "The article adopts a left-leaning perspective by emphasizing the transformative potential of the new policies and their focus on social equity, while downplaying economic concerns"}
+{"heading": "Controversy Over New Tax Reforms Raises Business Concerns","summary": "The introduction of new tax reforms has sparked widespread debate, with key stakeholders warning of potential negative impacts on economic growth and middle-class stability. The news event centers on concerns regarding increased regulatory burdens and a potential decline in business confidence.","bias": "right-leaning","biasExplanation": "The article exhibits a right-leaning bias by focusing on the potential economic drawbacks and questioning the overall efficacy of the proposed fiscal measures"}
 
 Content: {content}
-
-Output format:
-{{ 
-  "heading": "...",
-  "summary": "...",
-  "bias": "...",
-  "biasExplanation": "..."
-}}
-    `,
+`,
         inputVariables: ["content"],
     });
 
@@ -198,7 +156,6 @@ Output format:
                 modelUsed: model,
             };
 
-            // Store global news item with a stable key (based on article URL)
             const globalKey = `news/global/${encodeURIComponent(article.url)}.json`;
             await put(globalKey, JSON.stringify(newsItem), {
                 access: "public",
@@ -206,12 +163,10 @@ Output format:
                 cacheControlMaxAge: CACHE_DURATION / 1000,
             });
 
-            // If a persona (vibe) is provided, store/update persona-specific blob
             if (vibe && vibe.trim() !== "") {
                 const personaKey = `news/personas/${encodeURIComponent(vibe)}/${encodeURIComponent(article.url)}.json`;
                 let personaItem: any = null;
                 try {
-                    // List blobs with this exact key; if it exists, we assume it is the same item.
                     const { blobs } = await list({
                         prefix: personaKey,
                         token: process.env.BLOB_READ_WRITE_TOKEN,
@@ -224,21 +179,18 @@ Output format:
                     console.error("Error fetching existing persona blob:", e);
                 }
                 if (personaItem) {
-                    // If the item already exists, merge the vibe information.
                     if (!personaItem.vibes || !Array.isArray(personaItem.vibes)) {
                         personaItem.vibes = [];
                     }
                     if (!personaItem.vibes.includes(vibe)) {
                         personaItem.vibes.push(vibe);
                     }
-                    // Optionally, you could update other fields if needed.
                     await put(personaKey, JSON.stringify(personaItem), {
                         access: "public",
                         token: process.env.BLOB_READ_WRITE_TOKEN,
                         cacheControlMaxAge: CACHE_DURATION / 1000,
                     });
                 } else {
-                    // Create a new persona-specific news item with a "vibes" field.
                     const personaNewsItem = { ...newsItem, vibes: [vibe] };
                     await put(personaKey, JSON.stringify(personaNewsItem), {
                         access: "public",
@@ -268,7 +220,6 @@ async function fetchAllCachedNews(): Promise<NewsTopic> {
                 return (await response.json()) as NewsItem;
             })
         );
-        // Return all global news items sorted by lastUpdated
         const sortedItems = newsItems.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
         if (Date.now() - startTime > MAX_TOTAL_TIME_MS) throw new Error("Cache fetch exceeded 5-minute limit");
         return sortedItems;
@@ -284,8 +235,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
         const { vibe = "", model = DEFAULT_MODEL } = req.query;
-        if (!AI_MODELS.openai.concat(AI_MODELS.anthropic).includes(model as string)) {
-            throw new Error(`Unsupported model: ${model}. Use one of ${JSON.stringify(AI_MODELS)}`);
+        if (!AI_MODELS.openai.includes(model as string)) {
+            throw new Error(`Unsupported model: ${model}. Use one of ${JSON.stringify(AI_MODELS.openai)}`);
         }
 
         let newsItems: NewsTopic;
