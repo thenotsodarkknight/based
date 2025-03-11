@@ -5,29 +5,18 @@ import { NewsTopic, BlobMetadata, NewsItem } from "../../types/news";
 import { put, list, del } from "@vercel/blob";
 import Anthropic from "@anthropic-ai/sdk";
 
-// Initialize AI clients
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const NEWSAPI_KEY = process.env.NEWSAPI_KEY;
 
 let apiCallCount = 0;
 const MAX_API_CALLS = 300;
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-const MAX_TOTAL_TIME_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_DURATION = 24 * 60 * 60 * 1000;
+const MAX_TOTAL_TIME_MS = 5 * 60 * 1000;
 
-// Supported AI models
 const AI_MODELS = {
-    openai: [
-        "gpt-4o",
-        "gpt-4-turbo",
-        "gpt-3.5-turbo",
-        "gpt-4o-mini",
-    ],
-    anthropic: [
-        "claude-3-opus-20240229",
-        "claude-3-sonnet-20240229",
-        "claude-3-haiku-20240307",
-    ],
+    openai: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-4o-mini"],
+    anthropic: ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"],
 };
 const DEFAULT_MODEL = "gpt-4o";
 
@@ -35,7 +24,7 @@ async function safeAICall(
     model: string,
     params: any,
     fallback: () => string,
-    timeoutMs: number = 30000 // 30-second timeout per call
+    timeoutMs: number = 30000
 ): Promise<string> {
     if (apiCallCount >= MAX_API_CALLS) return fallback();
     apiCallCount++;
@@ -100,14 +89,14 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
 
             const summary = await safeAICall(
                 model,
-                { messages: [{ role: "user", content: `Generate a neutral summary (50-100 words) of the news event behind this article, focusing on an unbiased overview, not the article's content: ${content}` }] },
+                { messages: [{ role: "user", content: `Provide a neutral summary (50-100 words) of the news event behind this article, focusing on an unbiased overview, without introductory text: ${content}` }] },
                 () => content.substring(0, 100)
             );
 
             const biasResult = await safeAICall(
                 model,
-                { messages: [{ role: "user", content: `Classify the bias with a 1-3 word tag (e.g., neutral, left-leaning). Then, provide a separate, independent explanation (50-100 words) based on language and content, without referencing the tag: ${content}` }] },
-                () => "neutral\nThe content appears informative."
+                { messages: [{ role: "user", content: `Suggest a bias classification with a strict 1-3 word tag (e.g., neutral, left-leaning, sensationalist). Then, provide a separate, independent explanation (50-100 words) based on the language and content, without referencing the tag or source name: ${content}` }] },
+                () => "neutral\nThe content appears informative with balanced language."
             );
             const [bias, ...explanationLines] = biasResult.split("\n");
             const biasExplanation = explanationLines.join("\n").trim();
@@ -125,7 +114,6 @@ async function processArticles(articles: any[], model: string): Promise<NewsTopi
                 modelUsed: model,
             };
 
-            // Global cache with unique key
             const cacheKey = `news/global/${encodeURIComponent(article.url)}-${Date.now()}.json`;
             await put(cacheKey, JSON.stringify(newsItem), {
                 access: "public",
