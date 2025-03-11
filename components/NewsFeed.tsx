@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/pagination";
@@ -11,8 +10,6 @@ interface Props {
 }
 
 const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
-    const [index, setIndex] = useState(0);
-
     if (!isMobile) {
         return (
             <div className="flex items-center justify-center h-screen bg-gradient-to-b from-backgroundDark to-backgroundLight">
@@ -24,21 +21,19 @@ const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
     }
 
     return (
-        <div className="h-screen w-full flex items-center justify-center overflow-x-auto">
+        <div className="h-screen w-full">
             <Swiper
-                direction="horizontal"
-                onSlideChange={(swiper) => setIndex(swiper.activeIndex)}
-                spaceBetween={10}
-                slidesPerView="auto"
-                className="w-full h-[90vh]"
-                mousewheel={true}
-                touchRatio={1.5}
-                touchReleaseOnEdges={true}
-                effect="slide"
+                direction="vertical"
                 pagination={{ clickable: true }}
+                mousewheel={true}
+                style={{ height: "100%" }}
             >
                 {topics.map((topic, idx) => (
-                    <SwiperSlide key={idx} style={{ width: "90%" }}>
+                    <SwiperSlide key={idx}>
+                        {/*
+              If a topic's content overflows and requires multiple cards,
+              wrap the cards in a nested horizontal Swiper here.
+            */}
                         <NewsCard topic={topic} />
                     </SwiperSlide>
                 ))}
