@@ -158,16 +158,17 @@ Examples:
 {{"heading": "Government Unveils Progressive Climate Policies","summary": "The government has rolled out an ambitious set of climate policies aimed at boosting renewable energy and promoting social equity. The policy package includes significant investments in green infrastructure and incentives for sustainable practices, signaling a transformative approach to environmental and social reform.","bias": "left-leaning","biasExplanation": "The article adopts a left-leaning perspective by emphasizing the transformative potential of the new policies and their focus on social equity, while downplaying economic concerns"}}
 {{"heading": "Controversy Over New Tax Reforms Raises Business Concerns","summary": "The introduction of new tax reforms has sparked widespread debate, with key stakeholders warning of potential negative impacts on economic growth and middle-class stability. The news event centers on concerns regarding increased regulatory burdens and a potential decline in business confidence.","bias": "right-leaning","biasExplanation": "The article exhibits a right-leaning bias by focusing on the potential economic drawbacks and questioning the overall efficacy of the proposed fiscal measures"}}
 
-Output the slightest bias in the article content, if any, based on the following content:
-Content: {content}
+Get Content from url {url} 
+Helper content: {content} but fetch data from url
 `,
-        inputVariables: ["content"],
+        inputVariables: ["url", "content"],
     });
 
     const results = await Promise.all(
         articles.map(async (article) => {
+            const url = article.url;
             const content = article.content || article.description || article.title;
-            const aiOutput = await safeAICall(model, await prompt.format({ content }), article);
+            const aiOutput = await safeAICall(model, await prompt.format({ content, url }), article);
             const newsItem: NewsItem = {
                 heading: aiOutput.heading.trim(),
                 summary: aiOutput.summary.trim(),
