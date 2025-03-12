@@ -33,7 +33,7 @@ export default function Home() {
                 <h1 className="text-base font-semibold text-primary" onClick={() => setVibe("")}>based</h1>
                 <select
                     onChange={(e) => setVibe(e.target.value)}
-                    className="p-2 bg-primary text-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
+                    className="p-2 bg-primary font-semibold text-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
                     value={vibe}
                 >
                     <option value="">All Vibes</option>
@@ -70,7 +70,7 @@ export default function Home() {
             <footer className="fixed bottom-0 left-0 right-0 z-10 p-4 bg-backgroundDark/80 backdrop-blur-sm flex justify-center">
                 <select
                     onChange={(e) => setModel(e.target.value)}
-                    className="p-2 bg-primary text-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
+                    className="p-2 bg-primary font-semibold text-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
                     value={model}
                 >
                     <optgroup label="OpenAI">

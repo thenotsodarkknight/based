@@ -13,8 +13,8 @@ const NewsCard: React.FC<Props> = ({ newsItem }) => {
     }[newsItem.source.bias] || "text-rightBias bg-rightBias/10";
 
     return (
-        <div className="flex flex-col justify-between h-[90vh] w-full bg-[#333333]/50 backdrop-blur-md rounded-xl p-3 mx-auto transform transition-all duration-300 hover:bg-[#333333]/70 animate-fadeIn md:max-w-md border border-[#444444]">
-            <div className="space-y-3">
+        <div className="flex flex-col justify-between h-[80vh] w-[90vw] bg-[#333333]/50 backdrop-blur-md rounded-xl p-3 mx-auto transform transition-all duration-300 hover:bg-[#333333]/70 animate-fadeIn md:max-w-md border border-[#444444]">
+            <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-textPrimary">{newsItem.heading}</h2>
                 <p className="text-textSecondary text-xs leading-relaxed">{newsItem.summary}</p>
                 <div className="space-y-2">
@@ -36,7 +36,7 @@ const NewsCard: React.FC<Props> = ({ newsItem }) => {
                 </div>
             </div>
             <div className="text-xs text-textSecondary">
-                <strong>Last Updated:</strong> {new Date(newsItem.lastUpdated).toLocaleString()}
+                <strong>Last Updated:</strong> {new Date(new Date(newsItem.lastUpdated).setDate(new Date(newsItem.lastUpdated).getDate() + 2)).toDateString()}
             </div>
         </div>
     );

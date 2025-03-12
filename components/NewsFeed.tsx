@@ -21,15 +21,15 @@ const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
     }
 
     return (
-        <div className="h-screen w-full pt-16">
+        <div className="h-screen w-full pt-20" >
             <Swiper
                 direction="vertical"
                 pagination={{ clickable: true }}
                 mousewheel={true}
-                style={{ height: "calc(100% - 4rem)" }}
+                style={{ height: "calc(100% - 3rem)", zIndex: 2 }}
             >
                 {topics.map((item, idx) => (
-                    <SwiperSlide key={idx}>
+                    <SwiperSlide key={idx} style={{ zIndex: 1 }}>
                         <NewsCard newsItem={item} /> {/* Pass NewsItem instead of NewsTopic */}
                     </SwiperSlide>
                 ))}
