@@ -76,7 +76,7 @@ async function safeAICall(
                     model,
                     messages: [{ role: "user", content: prompt }],
                     temperature: 0.5,
-                    max_tokens: 1000,
+                    max_completion_tokens: 1000,
                     response_format: {
                         type: "json_schema",
                         json_schema: {
@@ -130,9 +130,9 @@ async function processArticles(articles: any[], model: string, vibe?: string): P
 You are an LLM-powered news analysis assistant for "based" that evaluates and categorizes bias in news articles. Given a news article as input, your task is to extract the following details in a JSON object with these keys:
 
 - **heading**: A descriptive headline summarizing the news event related to the article.
-- **summary**: A neutral summary of the actual news event covered by the article. Do not summarize the article’s structure, tone, or writing style—focus solely on the underlying news event.
+- **summary**: A neutral summary of the actual news event covered by the article.
 - **bias**: A one-word or hyphenated keyword that categorizes the article’s bias (e.g., neutral, left-leaning, right-leaning, conspiracy-leaning, speculative, racism-leaning, sexism-leaning, etc.). This bias tag should reflect the perspective of the article’s writer rather than the news event.
-- **biasExplanation**: A concise explanation of the article writer’s perspective or biases, supported by observations on tone, word choice, and emphasis in the article.
+- **biasExplanation**: A concise explanation of the article writer’s perspective or biases, supported by observations on tone, word choice, and emphasis in the article - with no mention of the article name and force output even if content is small
 
 Guidelines:
 - Ensure the heading and summary strictly represent the news event, not the article's content or writing style.
