@@ -3,7 +3,7 @@ based is an LLM-powered news analysis application that fetches articles from div
 
 You cannot filter biases - News from all biases will be equally added to feed.
 
-> Note: This is not meant for production, it's kind of a weekend project.
+> Note: This is not meant for production, it's kind of a weekend project. For example, the podcast generation feature included storing of the podcast temporarily, which requires storage resources that I dont have the funds for. Additionally, I use the free tier for NewsAPI which limits the number of articles I can source per day.
 
 <div style="display: flex;">
   <img style="width: 32%;" src="https://github.com/user-attachments/assets/16d3d864-1950-440d-9972-37fe86df0e20" />
