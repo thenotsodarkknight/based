@@ -273,7 +273,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (!vibe || vibe.toString().trim() === "") {
             newsItems = cachedNews;
-            if (newsItems.length === 0 || newsItems.length < 9) { // Adjust threshold as needed
+            if (newsItems.length === 0 || newsItems.length < 50) { // Adjust threshold as needed
                 console.warn("Insufficient cached news, fetching new articles.");
                 try {
                     const newArticles = await fetchNewsArticles("news", 3, existingUrls);
@@ -286,7 +286,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         } else {
             const query = vibe.toString();
-            const articles = await fetchNewsArticles(query, 3, existingUrls);
+            const articles = await fetchNewsArticles(query, 5, existingUrls);
             if (!articles.length) {
                 console.warn("No new articles fetched for query:", query);
                 return res.status(200).json(cachedNews); // Return cached if no new articles
