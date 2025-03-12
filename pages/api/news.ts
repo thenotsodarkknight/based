@@ -35,7 +35,7 @@ const newsapiKey = process.env.NEWSAPI_KEY;
 let apiCallCount = 0;
 const MAX_API_CALLS = 300;
 const CACHE_DURATION = 24 * 60 * 60 * 1000;
-const MAX_TOTAL_TIME_MS = 5 * 60 * 1000;
+const MAX_TOTAL_TIME_MS = 5 * 60 * 1000 * 2;
 
 const AI_MODELS = {
     openai: ["o3-mini", "o1-mini", "gpt-4o-mini"],
@@ -74,7 +74,7 @@ async function safeAICall(
             const response = await openai.chat.completions.create({
                 model,
                 messages: [{ role: "user", content: prompt }],
-                max_completion_tokens: 500,
+                max_completion_tokens: 400,
                 reasoning_effort: "low",
                 // Uncomment stream option if supported:
                 // stream: true,
