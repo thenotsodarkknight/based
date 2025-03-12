@@ -75,7 +75,6 @@ async function safeAICall(
                 {
                     model,
                     messages: [{ role: "user", content: prompt }],
-                    temperature: 0.5,
                     max_completion_tokens: 1000,
                     response_format: {
                         type: "json_schema",
