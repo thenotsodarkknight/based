@@ -74,7 +74,7 @@ async function safeAICall(
             const response = await openai.chat.completions.create({
                 model,
                 messages: [{ role: "user", content: prompt }],
-                max_completion_tokens: 500,
+                max_completion_tokens: 5000,
                 reasoning_effort: "low",
                 // Uncomment stream option if supported:
                 // stream: true,
