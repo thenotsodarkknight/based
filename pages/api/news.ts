@@ -58,7 +58,7 @@ async function safeAICall(
                 heading: article.title || "News Event",
                 summary: content || "No summary available from the article content.",
                 bias: "neutral",
-                biasExplanation: `The article titled "${article.title || 'unknown'}" appears neutral due to limited processing. The content, starting with "${content.slice(0, 20)}...", focuses on factual reporting without evident editorial slant.`,
+                biasExplanation: `The article titled "${article.title || 'unknown'}" appears neutral due to limited processing.`,
             };
         }
         apiCallCount++;
@@ -74,8 +74,10 @@ async function safeAICall(
             const response = await openai.chat.completions.create({
                 model,
                 messages: [{ role: "user", content: prompt }],
-                max_completion_tokens: 500, // Lower token count for faster responses
-                reasoning_effort: "low",      // Set reasoning effort to low for speed
+                max_completion_tokens: 500,
+                reasoning_effort: "low",
+                // Uncomment stream option if supported:
+                // stream: true,
                 response_format: {
                     type: "json_schema",
                     json_schema: {
@@ -93,7 +95,23 @@ async function safeAICall(
             }
 
             console.log("Raw response from OpenAI:", responseText);
-            const parsedResponse = AIOutputSchema.parse(JSON.parse(responseText));
+            let parsedResponse: AIOutput;
+            try {
+                parsedResponse = AIOutputSchema.parse(JSON.parse(responseText));
+            } catch (parseError: any) {
+                // Discard invalid input and use fallback output.
+                if (parseError.message.includes("Unexpected end of JSON input")) {
+                    console.warn("Discarding invalid AI response for article:", article.title);
+                    const content = article.content || article.description || article.title || "No content available";
+                    return {
+                        heading: article.title || "News Event",
+                        summary: content || "No summary available from the article content.",
+                        bias: "neutral",
+                        biasExplanation: `Fallback: The AI response was invalid, so a neutral summary is provided.`,
+                    };
+                }
+                throw parseError;
+            }
             return parsedResponse;
         } catch (error: any) {
             console.error(`Error with model ${model}:`, error.message);
@@ -104,6 +122,7 @@ async function safeAICall(
         }
     }
 }
+
 
 async function fetchNewsArticles(query: string, pageSize: number = 5): Promise<any[]> {
     const startTime = Date.now();
