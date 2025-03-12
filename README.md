@@ -168,7 +168,7 @@ Future Enhancements
 
 ---------------
 
-## [Demo - Click Here](https://github.com/user-attachments/assets/74db110e-641a-4974-961a-934134d5c992)
+## [Demo - Click Here](https://uchicago.box.com/s/xygx90537b4ig66ziv0aklqyvk11ohyw)
 
 Built with ❤️ by Abeen Bhattacharya
 
