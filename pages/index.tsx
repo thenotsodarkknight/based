@@ -9,6 +9,7 @@ export default function Home() {
     const [loading, setLoading] = useState<boolean>(false);
     const [isMobile, setIsMobile] = useState<boolean>(false);
     const [showPopup, setShowPopup] = useState<boolean>(false);
+    const [showFeaturePopup, setShowFeaturePopup] = useState<boolean>(false);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -24,13 +25,18 @@ export default function Home() {
             const data: NewsTopic = await res.json();
             if (res.status === 429) {
                 setShowPopup(true);
-                setTimeout(() => setShowPopup(false), 4000); // Hide popup after 5 seconds
+                setTimeout(() => setShowPopup(false), 4000); // Hide popup after 4 seconds
             }
             setTopics(data);
             setLoading(false);
         };
         fetchNews();
     }, [vibe, model]);
+
+    const handlePodcastClick = () => {
+        setShowFeaturePopup(true);
+        setTimeout(() => setShowFeaturePopup(false), 2000); // Hide popup after 4 seconds
+    };
 
     return (
         <div className="min-h-screen relative bg-gradient-to-b from-backgroundDark to-backgroundLight">
@@ -41,7 +47,7 @@ export default function Home() {
                     className="p-2 bg-primary font-semibold text-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
                     value={vibe}
                 >
-                    <option value="">All Vibes</option>
+                    <option value="">All Roles</option>
                     <option value="Tech Enthusiast">Tech Enthusiast</option>
                     <option value="Politician">Politician</option>
                     <option value="Athlete">Athlete</option>
@@ -78,22 +84,30 @@ export default function Home() {
                 </div>
             )}
 
-            <footer className="fixed bottom-0 opacity-100 bg-gradient-to-b to-backgroundDark from-backgroundLight/20 left-0 right-0 z-10 p-4 flex justify-center">
+            {showFeaturePopup && (
+                <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-yellow-500 font-8xs text-white p-4 rounded-lg shadow-lg transition-opacity duration-400" style={{ zIndex: 10 }}>
+                    Feature in development
+                </div>
+            )}
+
+            <footer className="fixed bottom-0 opacity-100 bg-gradient-to-b to-backgroundDark from-backgroundLight/20 left-0 right-0 z-10 p-4 flex justify-center space-x-4">
+                <div className="flex flex-col items-center">
+                    <button
+                        className="p-2 font-semibold bg-white text-primary rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
+                        onClick={handlePodcastClick}
+                    >
+                        Generate Podcast
+                    </button>
+                </div>
                 <select
-                    onChange={(e) => setModel(e.target.value)}
+                    onChange={(e) => setVibe(e.target.value)}
                     className="p-2 font-semibold text-primary rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
-                    value={model}
+                    value={vibe}
                 >
-                    <optgroup label="OpenAI">
-                        {["o3-mini", "o1-mini", "gpt-4o-mini"].map(m => (
-                            <option key={m} value={m}>{m}</option>
-                        ))}
-                    </optgroup>
-                    {/* <optgroup label="Anthropic">
-                        {["claude-3-5-haiku", "claude-3-haiku-20240307"].map m => (
-                            <option key={m} value={m}>{m}</option>
-                        ))}
-                    </optgroup> */}
+                    <option value="gen-z">Gen-Z</option>
+                    <option value="normal">Normal</option>
+                    <option value="eli5">ELI5</option>
+                    <option value="role-based">Role-Based</option>
                 </select>
             </footer>
         </div>
