@@ -126,7 +126,10 @@ async function fetchNewsArticles(query: string, pageSize: number = 3, existingUr
         if (Date.now() - startTime > MAX_TOTAL_TIME_MS) throw new Error("Fetch exceeded 5-minute limit");
 
         const articles = response.data.articles || [];
-        return articles;
+        // Filter out articles whose URLs are already stored
+        const newArticles = articles.filter(article => !existingUrls.has(article.url));
+        console.log(`Fetched ${articles.length} articles, ${newArticles.length} are new`);
+        return newArticles;
     } catch (error: any) {
         console.error("Error fetching articles from NewsAPI:", error.message);
         throw new Error(`NewsAPI error: ${error.message}`);
@@ -277,7 +280,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         } else {
             const query = vibe.toString();
-            const articles = await fetchNewsArticles(query, 2, existingUrls);
+            const articles = await fetchNewsArticles(query, 3, existingUrls);
             if (!articles.length) {
                 console.warn("No new articles fetched for query:", query);
                 return res.status(200).json(cachedNews); // Return cached if no new articles
