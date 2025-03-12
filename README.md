@@ -1,14 +1,15 @@
 # based: removing 'i' from biased
-based is an LLM-powered news analysis application that fetches articles from diverse sources, classifies their biases (left-leaning, right-leaning, speculative, conspiracy-leaning, neutral, etc), and generates balanced summaries. The app presents the latest and most popular news in a swipeable card interface, with each card featuring a neutral summary and links to articles categorized by bias. Users can filter news by "vibes" (personas like "Tech Enthusiast" or "Athlete") and click cards to go to the actual article. Based leverages OpenAI, Anthropic, and NewsAPI to deliver a modern, bias-aware news experience.
+based is an LLM-powered news analysis application that fetches articles from diverse sources, classifies their biases (left-leaning, right-leaning, speculative, conspiracy-leaning, neutral, etc), and generates balanced summaries. The app presents the latest and most popular news in a swipeable card interface, with each card featuring a neutral summary and links to articles categorized by bias. Users can filter news by "roles" (personas like "Tech Enthusiast" or "Athlete") and click cards to go to the actual article. Based leverages OpenAI, Anthropic, and NewsAPI to deliver a modern, bias-aware news experience. Users can listen to a podcast style conversation of their entire news feed - similar to NotebookLM.
 
 You cannot filter biases - News from all biases will be equally added to feed.
 
 > Note: This is not meant for production, it's kind of a weekend project.
 
 <div style="display: flex;">
-  <img style="width: 32%;" src="https://github.com/user-attachments/assets/18cb92bc-1b51-44a7-bce7-00a4e1b5a889" />
-  <img style="width: 32%;" src="https://github.com/user-attachments/assets/cc5affdf-65f2-49c6-8f9e-002f6f04c864" />
-  <img style="width: 32%;" src="https://github.com/user-attachments/assets/6cd3e304-0d66-4ab7-828a-20bb4a4ed105" />
+  <img style="width: 32%;" src="https://github.com/user-attachments/assets/16d3d864-1950-440d-9972-37fe86df0e20" />
+  <img style="width: 32%;" src="https://github.com/user-attachments/assets/6298aaa8-bd21-4f32-81ad-269daeb29d19" />
+  <img style="width: 32%;" src="https://github.com/user-attachments/assets/753293c4-4012-4a83-a62c-bf727075e0d8" />
+  <br></br>Previous Version:<br><br/>
   <img src="https://github.com/user-attachments/assets/e5ad5519-47cb-4734-ae18-9ec2002ead10" alt="IMG_9660" style="width: 32%;">
   <img src="https://github.com/user-attachments/assets/fbf2a571-3124-4709-b09d-1d524dea0d19" alt="IMG_9664" style="width: 32%;">
   <img src="https://github.com/user-attachments/assets/0d2442ce-89fe-484a-8793-ffb158ec8143" alt="IMG_9665" style="width: 32%;">
@@ -23,7 +24,9 @@ Features
 
 -   **Balanced Summaries:** Generates neutral summaries by synthesizing multiple perspectives, even when neutral sources are absent.
 
--   **"Vibes" Filter:** Customize the news feed based on personas (e.g., "Tech Enthusiast," "Athlete," "Influencer," "Actor").
+-   **"Roles" Filter:** Customize the news feed based on personas (e.g., "Tech Enthusiast," "Athlete," "Influencer," "Actor").
+
+-   **"Podcast" Generation:** Listen to a podcast style conversation of your entire news feed - similar to NotebookLM
 
 -   **Detailed Analysis:** Click a card to view an in-depth breakdown of an article's bias and summary.
 
