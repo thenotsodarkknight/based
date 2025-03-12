@@ -99,9 +99,9 @@ async function safeAICall(
             try {
                 parsedResponse = AIOutputSchema.parse(JSON.parse(responseText));
             } catch (parseError: any) {
-                // Discard invalid input and use fallback output.
                 if (parseError.message.includes("Unexpected end of JSON input")) {
                     console.warn("Discarding invalid AI response for article:", article.title);
+                    continue;
                 }
                 throw parseError;
             }
