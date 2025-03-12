@@ -75,7 +75,7 @@ async function safeAICall(
                 model,
                 messages: [{ role: "user", content: prompt }],
                 max_completion_tokens: 5000,
-                reasoning_effort: "low",
+                reasoning_effort: "medium",
                 // Uncomment stream option if supported:
                 // stream: true,
                 response_format: {
