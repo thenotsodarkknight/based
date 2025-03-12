@@ -57,6 +57,7 @@ export default function Home() {
                     <option value="Entrepreneur">Entrepreneur</option>
                     <option value="Journalist">Journalist</option>
                     <option value="Academic">Academic</option>
+                    <option value="Lawyer">Lawyer</option>
                     <option value="Activist">Activist</option>
                     <option value="Economist">Economist</option>
                     <option value="Cultural Icon">Cultural Icon</option>
