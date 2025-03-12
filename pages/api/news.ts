@@ -281,7 +281,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     newsItems = [...cachedNews, ...newsItems]; // Combine with existing if desired
                 }
                 catch (error: any) {
-                    newsItems = cachedNews
+                    newsItems = cachedNews;
                 }
             }
         } else {
