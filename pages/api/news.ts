@@ -270,13 +270,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const cachedNews = await fetchAllCachedNews();
         const existingUrls = new Set(cachedNews.map(item => item.source.url));
 
+
         if (!vibe || vibe.toString().trim() === "") {
             newsItems = cachedNews;
             if (newsItems.length === 0 || newsItems.length < 9) { // Adjust threshold as needed
                 console.warn("Insufficient cached news, fetching new articles.");
-                const newArticles = await fetchNewsArticles("news", 3, existingUrls);
-                newsItems = await processArticles(newArticles, model as string);
-                newsItems = [...cachedNews, ...newsItems]; // Combine with existing if desired
+                try {
+                    const newArticles = await fetchNewsArticles("news", 3, existingUrls);
+                    newsItems = await processArticles(newArticles, model as string);
+                    newsItems = [...cachedNews, ...newsItems]; // Combine with existing if desired
+                }
+                catch (error: any) {
+                    newsItems = cachedNews
+                }
             }
         } else {
             const query = vibe.toString();
