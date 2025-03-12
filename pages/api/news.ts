@@ -124,7 +124,7 @@ async function safeAICall(
 }
 
 
-async function fetchNewsArticles(query: string, pageSize: number = 5): Promise<any[]> {
+async function fetchNewsArticles(query: string, pageSize: number = 3): Promise<any[]> {
     const startTime = Date.now();
     try {
         const response = await axios.get("https://newsapi.org/v2/everything", {
