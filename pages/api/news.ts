@@ -168,7 +168,7 @@ Helper content: {content} but fetch data from url
         articles.map(async (article) => {
             const url = article.url;
             const content = article.content || article.description || article.title;
-            const aiOutput = await safeAICall(model, await prompt.format({ content, url }), article);
+            const aiOutput = await safeAICall(model, await prompt.format({ url, content }), article);
             const newsItem: NewsItem = {
                 heading: aiOutput.heading.trim(),
                 summary: aiOutput.summary.trim(),
