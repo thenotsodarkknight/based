@@ -29,7 +29,7 @@ const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
                 style={{ height: "calc(100% - 3rem)", zIndex: 2 }}
             >
                 {topics.map((item, idx) => (
-                    <SwiperSlide key={idx} style={{ zIndex: 1 }}>
+                    <SwiperSlide key={idx} >
                         <NewsCard newsItem={item} /> {/* Pass NewsItem instead of NewsTopic */}
                     </SwiperSlide>
                 ))}

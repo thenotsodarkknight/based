@@ -29,7 +29,7 @@ export default function Home() {
 
     return (
         <div className="min-h-screen relative bg-gradient-to-b from-backgroundDark to-backgroundLight">
-            <nav className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-backgroundDark/80 backdrop-blur-sm">
+            <nav className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-backgroundDark/80 backdrop-blur-sm" style={{ zIndex: 1 }}>
                 <h1 className="text-xl p-1 font-semibold text-primary" onClick={() => setVibe("")}>based</h1>
                 <select
                     onChange={(e) => setVibe(e.target.value)}
@@ -67,10 +67,10 @@ export default function Home() {
                 </div>
             )}
 
-            <footer className="fixed bottom-0 left-0 right-0 z-10 p-4 bg-backgroundDark/80 backdrop-blur-sm flex justify-center">
+            <footer className="fixed bottom-0 left-0 right-0 z-10 p-4 backdrop-blur-sm flex justify-center">
                 <select
                     onChange={(e) => setModel(e.target.value)}
-                    className="p-2 bg-primary font-semibold text-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
+                    className="p-2 font-semibold text-primary rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
                     value={model}
                 >
                     <optgroup label="OpenAI">
