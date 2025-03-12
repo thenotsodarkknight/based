@@ -6,6 +6,8 @@ You cannot filter biases - News from all biases will be equally added to feed.
 > Note: This is not meant for production, it's kind of a weekend project.
 
 <div style="display: flex;">
+  <img style="width: 32%;" src="https://github.com/user-attachments/assets/18cb92bc-1b51-44a7-bce7-00a4e1b5a889" />
+  <img style="width: 32%;" src="https://github.com/user-attachments/assets/cc5affdf-65f2-49c6-8f9e-002f6f04c864" />
   <img src="https://github.com/user-attachments/assets/e5ad5519-47cb-4734-ae18-9ec2002ead10" alt="IMG_9660" style="width: 32%;">
   <img src="https://github.com/user-attachments/assets/fbf2a571-3124-4709-b09d-1d524dea0d19" alt="IMG_9664" style="width: 32%;">
   <img src="https://github.com/user-attachments/assets/0d2442ce-89fe-484a-8793-ffb158ec8143" alt="IMG_9665" style="width: 32%;">
