@@ -24,7 +24,7 @@ export default function Home() {
             const data: NewsTopic = await res.json();
             if (res.status === 429) {
                 setShowPopup(true);
-                setTimeout(() => setShowPopup(false), 10000); // Hide popup after 5 seconds
+                setTimeout(() => setShowPopup(false), 4000); // Hide popup after 5 seconds
             }
             setTopics(data);
             setLoading(false);
@@ -73,7 +73,7 @@ export default function Home() {
             )}
 
             {showPopup && (
-                <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500 font-8xs text-white p-4 rounded-lg shadow-lg transition-opacity duration-300" style={{ zIndex: 10 }}>
+                <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500 font-8xs text-white p-4 rounded-lg shadow-lg transition-opacity duration-400" style={{ zIndex: 10 }}>
                     NewsAPI Daily Token Limit Reached: This app is just for a weekend project, so a free tier is being used. Populating with cached news items.
                 </div>
             )}
