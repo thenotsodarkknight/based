@@ -99,16 +99,22 @@ export default function Home() {
                         Generate Podcast
                     </button>
                 </div>
+                {/* <div className="flex flex-col items-center">
+                    <button
+                        className="p-2 font-semibold bg-white text-primary rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
+                        onClick={handlePodcastClick}
+                    >
+                        Generate Podcast
+                    </button>
+                </div>
                 <select
-                    onChange={(e) => setVibe(e.target.value)}
                     className="p-2 font-semibold text-primary rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
-                    value={vibe}
                 >
                     <option value="gen-z">Gen-Z</option>
                     <option value="normal">Normal</option>
                     <option value="eli5">ELI5</option>
                     <option value="role-based">Role-Based</option>
-                </select>
+                </select> */}
             </footer>
         </div>
     );
