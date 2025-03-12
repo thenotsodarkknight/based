@@ -30,7 +30,7 @@ export default function Home() {
     return (
         <div className="min-h-screen relative bg-gradient-to-b from-backgroundDark to-backgroundLight">
             <nav className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-backgroundDark/80 backdrop-blur-sm">
-                <h1 className="text-base font-semibold text-primary">based</h1>
+                <h1 className="text-base font-semibold text-primary" onClick={() => setVibe("")}>based</h1>
                 <select
                     onChange={(e) => setVibe(e.target.value)}
                     className="p-2 bg-primary text-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
