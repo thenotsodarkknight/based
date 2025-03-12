@@ -78,7 +78,7 @@ export default function Home() {
                 </div>
             )}
 
-            <footer className="fixed bottom-0 bg-gradient-to-b to-backgroundDark from-backgroundLight/20 left-0 right-0 z-10 p-4 backdrop-blur-sm flex justify-center">
+            <footer className="fixed bottom-0 bg-gradient-to-b to-backgroundDark from-backgroundLight/20 left-0 right-0 z-10 p-4 flex justify-center">
                 <select
                     onChange={(e) => setModel(e.target.value)}
                     className="p-2 font-semibold text-primary rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
