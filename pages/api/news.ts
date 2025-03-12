@@ -131,6 +131,10 @@ async function fetchNewsArticles(query: string, pageSize: number = 3, existingUr
         console.log(`Fetched ${articles.length} articles, ${newArticles.length} are new`);
         return newArticles;
     } catch (error: any) {
+        if (error.response && error.response.status === 429) {
+            console.error("Error fetching articles from NewsAPI: Too Many Requests");
+            throw new Error("429 Too Many Requests");
+        }
         console.error("Error fetching articles from NewsAPI:", error.message);
         throw new Error(`NewsAPI error: ${error.message}`);
     }
@@ -270,7 +274,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const cachedNews = await fetchAllCachedNews();
         const existingUrls = new Set(cachedNews.map(item => item.source.url));
 
-
         if (!vibe || vibe.toString().trim() === "") {
             newsItems = cachedNews;
             if (newsItems.length === 0 || newsItems.length < 50) { // Adjust threshold as needed
@@ -300,6 +303,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(200).json(newsItems);
     } catch (error: any) {
         console.error("Error processing news:", error);
-        res.status(500).json({ error: `Failed to fetch news: ${error.message}` });
+        if (error.message === "429 Too Many Requests") {
+            try {
+                const cachedNews = await fetchAllCachedNews();
+                if (cachedNews.length > 0) {
+                    res.status(429).json(cachedNews);
+                } else {
+                    res.status(429).json({ error: "Too Many Requests" });
+                }
+            }
+            catch (e: any) {
+                res.status(500).json({ error: `Failed to fetch news: ${error.message}` });
+            }
+        } else {
+            res.status(500).json({ error: `Failed to fetch news: ${error.message}` });
+        }
     }
 }

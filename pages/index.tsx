@@ -8,6 +8,7 @@ export default function Home() {
     const [model, setModel] = useState<string>("o3-mini");
     const [loading, setLoading] = useState<boolean>(false);
     const [isMobile, setIsMobile] = useState<boolean>(false);
+    const [showPopup, setShowPopup] = useState<boolean>(false);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -21,6 +22,10 @@ export default function Home() {
             setLoading(true);
             const res = await fetch(`/api/news?vibe=${encodeURIComponent(vibe)}&model=${encodeURIComponent(model)}`);
             const data: NewsTopic = await res.json();
+            if (res.status === 429) {
+                setShowPopup(true);
+                setTimeout(() => setShowPopup(false), 10000); // Hide popup after 5 seconds
+            }
             setTopics(data);
             setLoading(false);
         };
@@ -67,6 +72,12 @@ export default function Home() {
                 </div>
             )}
 
+            {showPopup && (
+                <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500 font-8xs text-white p-4 rounded-lg shadow-lg transition-opacity duration-300" style={{ zIndex: 10 }}>
+                    NewsAPI Daily Token Limit Reached: This app is just for a weekend project, so a free tier is being used. Populating with cached news items.
+                </div>
+            )}
+
             <footer className="fixed bottom-0 left-0 right-0 z-10 p-4 backdrop-blur-sm flex justify-center">
                 <select
                     onChange={(e) => setModel(e.target.value)}
@@ -79,7 +90,7 @@ export default function Home() {
                         ))}
                     </optgroup>
                     {/* <optgroup label="Anthropic">
-                        {["claude-3-5-haiku", "claude-3-haiku-20240307"].map(m => (
+                        {["claude-3-5-haiku", "claude-3-haiku-20240307"].map m => (
                             <option key={m} value={m}>{m}</option>
                         ))}
                     </optgroup> */}
