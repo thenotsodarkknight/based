@@ -116,7 +116,7 @@ async function safeAICall(
 }
 
 
-async function fetchNewsArticles(query: string, pageSize: number = 3): Promise<any[]> {
+async function fetchNewsArticles(query: string, pageSize: number = 3, existingUrls: Set<string>): Promise<any[]> {
     const startTime = Date.now();
     try {
         const response = await axios.get("https://newsapi.org/v2/everything", {
@@ -124,7 +124,12 @@ async function fetchNewsArticles(query: string, pageSize: number = 3): Promise<a
             timeout: 10000,
         });
         if (Date.now() - startTime > MAX_TOTAL_TIME_MS) throw new Error("Fetch exceeded 5-minute limit");
-        return response.data.articles || [];
+
+        const articles = response.data.articles || [];
+        // Filter out articles whose URLs are already stored
+        const newArticles = articles.filter(article => !existingUrls.has(article.url));
+        console.log(`Fetched ${articles.length} articles, ${newArticles.length} are new`);
+        return newArticles;
     } catch (error: any) {
         console.error("Error fetching articles from NewsAPI:", error.message);
         throw new Error(`NewsAPI error: ${error.message}`);
@@ -260,18 +265,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         let newsItems: NewsTopic;
+        // Get existing cached news to determine already stored URLs
+        const cachedNews = await fetchAllCachedNews();
+        const existingUrls = new Set(cachedNews.map(item => item.source.url));
+
         if (!vibe || vibe.toString().trim() === "") {
-            newsItems = await fetchAllCachedNews();
-            if (newsItems.length === 0) {
-                console.warn("No cached news found, falling back to default query.");
-                newsItems = await processArticles(await fetchNewsArticles("news"), model as string);
+            newsItems = cachedNews;
+            if (newsItems.length === 0 || newsItems.length < 9) { // Adjust threshold as needed
+                console.warn("Insufficient cached news, fetching new articles.");
+                const newArticles = await fetchNewsArticles("news", 3, existingUrls);
+                newsItems = await processArticles(newArticles, model as string);
+                newsItems = [...cachedNews, ...newsItems]; // Combine with existing if desired
             }
         } else {
             const query = vibe.toString();
-            const articles = await fetchNewsArticles(query);
+            const articles = await fetchNewsArticles(query, 3, existingUrls);
             if (!articles.length) {
-                console.warn("No articles fetched for query:", query);
-                return res.status(200).json([]);
+                console.warn("No new articles fetched for query:", query);
+                return res.status(200).json(cachedNews); // Return cached if no new articles
             }
             newsItems = await processArticles(articles, model as string, vibe as string);
         }
