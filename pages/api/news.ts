@@ -74,7 +74,7 @@ async function safeAICall(
             const response = await openai.chat.completions.create({
                 model,
                 messages: [{ role: "user", content: prompt }],
-                max_completion_tokens: 400,
+                max_completion_tokens: 500,
                 reasoning_effort: "low",
                 // Uncomment stream option if supported:
                 // stream: true,
@@ -272,7 +272,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (!vibe || vibe.toString().trim() === "") {
             newsItems = cachedNews;
-            if (newsItems.length === 0 || newsItems.length < 9) { // Adjust threshold as needed
+            if (newsItems.length === 0 || newsItems.length < 4) { // Adjust threshold as needed
                 console.warn("Insufficient cached news, fetching new articles.");
                 const newArticles = await fetchNewsArticles("news", 3, existingUrls);
                 newsItems = await processArticles(newArticles, model as string);
@@ -280,7 +280,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         } else {
             const query = vibe.toString();
-            const articles = await fetchNewsArticles(query, 3, existingUrls);
+            const articles = await fetchNewsArticles(query, 2, existingUrls);
             if (!articles.length) {
                 console.warn("No new articles fetched for query:", query);
                 return res.status(200).json(cachedNews); // Return cached if no new articles
