@@ -71,21 +71,20 @@ async function safeAICall(
                 throw new Error(`Model ${model} not supported. Use one of ${JSON.stringify(AI_MODELS.openai)}`);
             }
 
-            const response = await openai.chat.completions.create(
-                {
-                    model,
-                    messages: [{ role: "user", content: prompt }],
-                    max_completion_tokens: 1000,
-                    response_format: {
-                        type: "json_schema",
-                        json_schema: {
-                            name: "news_analysis",
-                            schema: AIOutputJsonSchema,
-                            strict: true,
-                        },
+            const response = await openai.chat.completions.create({
+                model,
+                messages: [{ role: "user", content: prompt }],
+                max_completion_tokens: 500, // Lower token count for faster responses
+                reasoning_effort: "low",      // Set reasoning effort to low for speed
+                response_format: {
+                    type: "json_schema",
+                    json_schema: {
+                        name: "news_analysis",
+                        schema: AIOutputJsonSchema,
+                        strict: true,
                     },
                 },
-            );
+            });
 
             const responseText = response.choices[0]?.message.content;
             if (!responseText) {
