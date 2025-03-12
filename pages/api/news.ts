@@ -272,7 +272,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (!vibe || vibe.toString().trim() === "") {
             newsItems = cachedNews;
-            if (newsItems.length === 0 || newsItems.length < 4) { // Adjust threshold as needed
+            if (newsItems.length === 0 || newsItems.length < 9) { // Adjust threshold as needed
                 console.warn("Insufficient cached news, fetching new articles.");
                 const newArticles = await fetchNewsArticles("news", 3, existingUrls);
                 newsItems = await processArticles(newArticles, model as string);
