@@ -7,10 +7,10 @@ interface Props {
 
 const NewsCard: React.FC<Props> = ({ newsItem }) => {
     const biasColor = {
-        "left-leaning": "text-leftBias bg-leftBias/10",
+        "left-leaning": "text-rightBias bg-rightBias/10",
         "right-leaning": "text-rightBias bg-rightBias/10",
         neutral: "text-neutralBias bg-neutralBias/10",
-    }[newsItem.source.bias] || "text-neutralBias bg-neutralBias/10";
+    }[newsItem.source.bias] || "text-leftBias bg-leftBias/10";
 
     return (
         <div className="flex flex-col justify-between h-[90vh] w-full bg-[#333333]/50 backdrop-blur-md rounded-xl p-3 mx-auto transform transition-all duration-300 hover:bg-[#333333]/70 animate-fadeIn md:max-w-md border border-[#444444]">

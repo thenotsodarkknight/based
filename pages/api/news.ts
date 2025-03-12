@@ -102,20 +102,12 @@ async function safeAICall(
                 // Discard invalid input and use fallback output.
                 if (parseError.message.includes("Unexpected end of JSON input")) {
                     console.warn("Discarding invalid AI response for article:", article.title);
-                    const content = article.content || article.description || article.title || "No content available";
-                    return {
-                        heading: article.title || "News Event",
-                        summary: content || "No summary available from the article content.",
-                        bias: "neutral",
-                        biasExplanation: `Fallback: The AI response was invalid, so a neutral summary is provided.`,
-                    };
                 }
                 throw parseError;
             }
             return parsedResponse;
         } catch (error: any) {
             console.error(`Error with model ${model}:`, error.message);
-            prompt = `${prompt}\n\nPrevious attempt failed: ${error.message}. Ensure output matches the schema: heading, summary, bias (single keyword), biasExplanation.`;
             continue;
         } finally {
             clearTimeout(timeoutId);
