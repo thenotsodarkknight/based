@@ -16,7 +16,7 @@ The app is fully automated - it fetches news, creates cards and updates storage 
 <!--   <br></br>Previous Version:<br><br/>
   <img src="https://github.com/user-attachments/assets/e5ad5519-47cb-4734-ae18-9ec2002ead10" alt="IMG_9660" style="width: 32%;">
   <img src="https://github.com/user-attachments/assets/fbf2a571-3124-4709-b09d-1d524dea0d19" alt="IMG_9664" style="width: 32%;">
-  <img src="https://github.com/user-attachments/assets/0d2442ce-89fe-484a-8793-ffb158ec8143" alt="IMG_9665" style="
+  <img src="https://github.com/user-attachments/assets/fbf2a571-3124-4709-b09d-1d524dea0d19" alt="IMG_9664" style="width: 32%;">--!>
 
 </div>
 
