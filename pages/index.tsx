@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import NewsFeed from "../components/NewsFeed";
 import { NewsTopic, NewsItem } from "../types/news";
 
@@ -18,6 +18,14 @@ export default function Home() {
     const [showFeaturePopup, setShowFeaturePopup] = useState<boolean>(false);
     const [podcastLoading, setPodcastLoading] = useState<boolean>(false);
     const [podcast, setPodcast] = useState<PodcastData | null>(null);
+
+    // Audio player states
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [duration, setDuration] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [volume, setVolume] = useState(1);
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const progressBarRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -71,7 +79,7 @@ export default function Home() {
             console.error('Error generating podcast:', error);
             // Use fallback podcast in case of error
             setPodcast({
-                title: "<i>podcasts</i> by <i>based</i>",
+                title: "podcasts by based",
                 summary: "A discussion of the news and current events on your current feed with expert analysis and commentary. Right now this feature is rolled back due to lack of storage-resources / funds for APIs. Here is a sample podcast instead.",
                 audioUrl: "https://6g3cqvnbmy1tir2l.public.blob.vercel-storage.com/podcasts/sample/base_podcast_demo-q2kHMwPFbk0hV2aYgNqnOi8r2paiRm.mp3"
             });
@@ -82,6 +90,59 @@ export default function Home() {
 
     const closePodcast = () => {
         setPodcast(null);
+    };
+
+    // Handle play/pause toggle
+    const togglePlay = () => {
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play();
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
+
+    // Handle time update
+    const handleTimeUpdate = () => {
+        if (audioRef.current) {
+            setCurrentTime(audioRef.current.currentTime);
+        }
+    };
+
+    // Handle loading metadata
+    const handleLoadedMetadata = () => {
+        if (audioRef.current) {
+            setDuration(audioRef.current.duration);
+        }
+    };
+
+    // Handle volume change
+    const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newVolume = parseFloat(e.target.value);
+        setVolume(newVolume);
+        if (audioRef.current) {
+            audioRef.current.volume = newVolume;
+        }
+    };
+
+    // Handle progress bar click
+    const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (progressBarRef.current && audioRef.current) {
+            const rect = progressBarRef.current.getBoundingClientRect();
+            const position = (e.clientX - rect.left) / rect.width;
+            const newTime = position * duration;
+            audioRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
+        }
+    };
+
+    // Format time function (converts seconds to mm:ss format)
+    const formatTime = (time: number) => {
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
     };
 
     return (
@@ -127,21 +188,88 @@ export default function Home() {
 
             {podcast && (
                 <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg max-w-2xl w-full mx-4">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-2xl w-full mx-4 shadow-2xl">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-bold text-primary">{podcast.title}</h2>
                             <button
                                 onClick={closePodcast}
-                                className="text-gray-500 hover:text-gray-700"
+                                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                             >
                                 ✕
                             </button>
                         </div>
-                        <p className="text-gray-700 mb-4">{podcast.summary}</p>
-                        <audio controls className="w-full">
-                            <source src={podcast.audioUrl} type="audio/mpeg" />
-                            Your browser does not support the audio element.
-                        </audio>
+                        <p className="text-gray-700 dark:text-gray-300 mb-6">{podcast.summary}</p>
+
+                        {/* Custom Audio Player */}
+                        <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg">
+                            {/* Hidden native audio element */}
+                            <audio
+                                ref={audioRef}
+                                src={podcast.audioUrl}
+                                onTimeUpdate={handleTimeUpdate}
+                                onLoadedMetadata={handleLoadedMetadata}
+                                onEnded={() => setIsPlaying(false)}
+                            />
+
+                            {/* Player Controls */}
+                            <div className="flex items-center justify-between mb-3">
+                                <button
+                                    onClick={togglePlay}
+                                    className="w-12 h-12 rounded-full flex items-center justify-center bg-primary hover:bg-purple-600 transition-colors"
+                                >
+                                    {isPlaying ? (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    )}
+                                </button>
+
+                                <div className="flex items-center space-x-4 flex-1 mx-4">
+                                    <span className="text-xs text-gray-600 dark:text-gray-400 w-10">{formatTime(currentTime)}</span>
+
+                                    {/* Progress Bar */}
+                                    <div
+                                        className="h-2 flex-1 rounded-full bg-gray-300 dark:bg-gray-700 relative cursor-pointer"
+                                        onClick={handleProgressBarClick}
+                                        ref={progressBarRef}
+                                    >
+                                        <div
+                                            className="absolute h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500"
+                                            style={{ width: `${(currentTime / duration) * 100}%` }}
+                                        ></div>
+                                        <div
+                                            className="absolute h-4 w-4 bg-white dark:bg-gray-200 rounded-full shadow-md -top-1"
+                                            style={{
+                                                left: `calc(${(currentTime / duration) * 100}% - 8px)`,
+                                                display: duration ? 'block' : 'none'
+                                            }}
+                                        ></div>
+                                    </div>
+
+                                    <span className="text-xs text-gray-600 dark:text-gray-400 w-10">{formatTime(duration)}</span>
+                                </div>
+
+                                <div className="flex items-center w-28">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414-7.072m-2.828 9.9a9 9 0 010-12.728" />
+                                    </svg>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.01"
+                                        value={volume}
+                                        onChange={handleVolumeChange}
+                                        className="w-full h-2 ml-2 rounded-lg appearance-none bg-gray-300 dark:bg-gray-700 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

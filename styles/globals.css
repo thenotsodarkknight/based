@@ -22,3 +22,43 @@ body {
 .animate-fadeIn {
     animation: fadeIn 0.5s ease-out;
 }
+
+/* Custom audio player styles */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 5px;
+    background: #d3d3d3;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #7F00FF;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #7F00FF;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover,
+input[type="range"]::-moz-range-thumb:hover {
+    background: #6500cc;
+}
+
+input[type="range"]:focus {
+    outline: none;
+}
