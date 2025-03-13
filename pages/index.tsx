@@ -80,7 +80,7 @@ export default function Home() {
             // Use fallback podcast in case of error
             setPodcast({
                 title: "podcasts by based",
-                summary: "A discussion of the news and current events on your current feed with expert analysis and commentary. Right now this feature is rolled back due to lack of storage-resources / funds for APIs. Here is a sample podcast instead.",
+                summary: "A discussion of the news and current events on your current feed with expert analysis and commentary. Right now this feature is rolled back due to lack of storage-resources / funds for APIs. Here is a sample podcast instead, meant for demo purposes only.",
                 audioUrl: "https://6g3cqvnbmy1tir2l.public.blob.vercel-storage.com/podcasts/sample/base_podcast_demo-q2kHMwPFbk0hV2aYgNqnOi8r2paiRm.mp3"
             });
         } finally {
