@@ -148,7 +148,7 @@ export default function Home() {
     return (
         <div className="min-h-screen relative bg-gradient-to-b from-backgroundDark via-[80%] to-backgroundLight">
             <nav className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-backgroundDark/80 backdrop-blur-sm" style={{ zIndex: 1 }}>
-                <h1 className="text-xl p-1 font-sbold text-primary" onClick={() => setVibe("")}>based</h1>
+                <h1 className="text-xl p-1 font-bold text-primary" onClick={() => setVibe("")}>based</h1>
                 <select
                     onChange={(e) => setVibe(e.target.value)}
                     className="p-2 bg-primary font-semibold text-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"
@@ -291,7 +291,7 @@ export default function Home() {
                 </div>
             )}
 
-            <footer className="fixed bottom-0 opacity-100 bg-gradient-to-b to-backgroundDark from-backgroundLight/20 left-0 right-0 z-10 pb-8 pt-4 px-4 flex justify-center space-x-4" style={{ paddingBottom: 'calc(1.2rem + env(safe-area-inset-bottom, 24px))' }}>
+            <footer className="fixed bottom-0 opacity-100 bg-gradient-to-b to-backgroundDark from-backgroundLight/20 left-0 right-0 z-10 pb-8 pt-4 px-4 flex justify-center space-x-4" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 24px))' }}>
                 <div className="flex flex-col items-center w-full max-w-xs">
                     <button
                         className={`p-3 w-full font-semibold ${podcastLoading ? 'bg-gray-300' : 'bg-white'} text-primary rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm`}
