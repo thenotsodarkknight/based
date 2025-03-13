@@ -50,14 +50,15 @@ export default function Home() {
 
         setPodcastLoading(true);
         try {
-            const newsItem = topics[0];
+            // Send up to 5 news items from the current feed
+            const selectedNewsItems = topics.slice(0, 5);
 
             const response = await fetch('/api/fetch/podcast', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ newsItem }),
+                body: JSON.stringify({ newsItems: selectedNewsItems }),
             });
 
             if (!response.ok) {
@@ -70,7 +71,7 @@ export default function Home() {
             console.error('Error generating podcast:', error);
             // Use fallback podcast in case of error
             setPodcast({
-                title: "Podcasts by based",
+                title: "<i>podcasts</i> by <i>based</i>",
                 summary: "A discussion of the news and current events on your current feed with expert analysis and commentary. Right now this feature is rolled back due to lack of storage-resources / funds for APIs. Here is a sample podcast instead.",
                 audioUrl: "https://6g3cqvnbmy1tir2l.public.blob.vercel-storage.com/podcasts/sample/base_podcast_demo-q2kHMwPFbk0hV2aYgNqnOi8r2paiRm.mp3"
             });

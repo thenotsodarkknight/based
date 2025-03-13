@@ -6,6 +6,8 @@ function MyApp({ Component, pageProps }: AppProps) {
     return (
         <>
             <Head>
+                <title>based</title>
+                <link rel="icon" href="/favicon.ico" />
                 <link rel="stylesheet" href="/tailwind.css" />
             </Head>
             <Component {...pageProps} />

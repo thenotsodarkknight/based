@@ -39,21 +39,29 @@ const VOICE_OPTIONS = {
 const CACHE_DURATION = 24 * 60 * 60;
 
 /**
- * Generates a podcast conversation in SSML format based on a news item
+ * Generates a podcast conversation in SSML format based on multiple news items
  */
-async function generatePodcastSSML(newsItem: NewsItem): Promise<PodcastOutput> {
+async function generatePodcastSSML(newsItems: NewsItem[]): Promise<PodcastOutput> {
+    // Create a stringified version of the news items for the prompt
+    const newsItemsText = newsItems.map((item, index) => `
+NEWS ITEM ${index + 1}:
+HEADLINE: ${item.heading}
+SUMMARY: ${item.summary}
+SOURCE BIAS: ${item.source.bias} - ${item.source.biasExplanation}
+`).join('\n');
+
     const prompt = new PromptTemplate({
         template: `
-You are creating a podcast script for a two-person conversation about a news item. 
-Create an engaging, informative podcast episode that discusses the following news:
+You are creating a podcast script for a two-person conversation about current news topics.
+Create an engaging, informative podcast episode that discusses the following news items:
 
-HEADLINE: {heading}
-SUMMARY: {summary}
-SOURCE BIAS: {bias} - {biasExplanation}
+${newsItemsText}
 
-Create a conversation between a host and a guest expert who discuss this news item:
-1. The host should introduce the news, ask insightful questions, and guide the conversation
+Create a conversation between a host and a guest expert who discuss these news items:
+1. The host should introduce each topic, ask insightful questions, and guide the conversation
 2. The guest should provide expert analysis, additional context, and balanced perspective
+3. The host should smoothly transition between different news topics
+4. Cover all news items, but spend more time on the most significant or interesting ones
 
 Format your response as proper SSML (Speech Synthesis Markup Language) with these requirements:
 - Use <speak> as the root element
@@ -62,15 +70,15 @@ Format your response as proper SSML (Speech Synthesis Markup Language) with thes
 - Use <prosody> tags to adjust rate, pitch, and volume for emphasis where appropriate
 - Use <emphasis> tags to highlight important points
 
-The conversation should be 2-3 minutes long when spoken, balanced between speakers, and should cover:
-- The key facts of the news item
-- Why this matters in a broader context
-- Different perspectives on the topic
+The conversation should be 3-5 minutes long when spoken, balanced between speakers, and should cover:
+- The key facts of each news item
+- Why these stories matter in a broader context
+- Different perspectives on the topics
 - Potential implications or consequences
 
 Keep the tone conversational, engaging, and accessible to a general audience.
 `,
-        inputVariables: ["heading", "summary", "bias", "biasExplanation"],
+        inputVariables: [],
     });
 
     const response = await openai.chat.completions.create({
@@ -78,12 +86,7 @@ Keep the tone conversational, engaging, and accessible to a general audience.
         messages: [
             {
                 role: "user",
-                content: await prompt.format({
-                    heading: newsItem.heading,
-                    summary: newsItem.summary,
-                    bias: newsItem.source.bias,
-                    biasExplanation: newsItem.source.biasExplanation,
-                }),
+                content: await prompt.format({}),
             },
         ],
         max_completion_tokens: 4000,
@@ -126,11 +129,21 @@ async function convertSSMLToAudio(ssml: string): Promise<Buffer> {
 }
 
 /**
- * Check if a podcast for this news item already exists in cache
+ * Create a unique hash for a set of news items
  */
-async function checkCachedPodcast(newsUrl: string): Promise<{ exists: boolean, url?: string, title?: string, summary?: string }> {
+function createNewsItemsHash(newsItems: NewsItem[]): string {
+    // Create a simple hash based on URLs and timestamps
+    const urls = newsItems.map(item => item.source.url).sort().join('|');
+    const timestamp = new Date().toISOString().split('T')[0]; // Use date only for daily caching
+    return encodeURIComponent(`${timestamp}_${urls.substring(0, 100)}`);
+}
+
+/**
+ * Check if a podcast for this collection of news items already exists in cache
+ */
+async function checkCachedPodcast(newsItemsHash: string): Promise<{ exists: boolean, url?: string, title?: string, summary?: string }> {
     try {
-        const podcastKey = `podcasts/${encodeURIComponent(newsUrl)}`;
+        const podcastKey = `podcasts/multi/${newsItemsHash}`;
         const { blobs } = await list({
             prefix: podcastKey,
             token: process.env.BLOB_READ_WRITE_TOKEN as string,
@@ -158,27 +171,24 @@ async function checkCachedPodcast(newsUrl: string): Promise<{ exists: boolean, u
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-
-    // Remove Podcast Generation feature due to lack of funds
-
-    res.status(500).json({ error: `Podcast Feature Rolled Back` });
-
-
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Method not allowed" });
     }
 
     try {
-        const { newsItem } = req.body;
+        const { newsItems } = req.body;
 
-        if (!newsItem || !newsItem.heading || !newsItem.summary) {
-            return res.status(400).json({ error: "Missing or invalid news item" });
+        if (!newsItems || !Array.isArray(newsItems) || newsItems.length === 0) {
+            return res.status(400).json({ error: "Missing or invalid news items" });
         }
 
+        // Create a unique hash for this collection of news items
+        const newsItemsHash = createNewsItemsHash(newsItems);
+
         // Check if podcast already exists in cache
-        const cachedPodcast = await checkCachedPodcast(newsItem.source.url);
+        const cachedPodcast = await checkCachedPodcast(newsItemsHash);
         if (cachedPodcast.exists) {
-            console.log("Using cached podcast for:", newsItem.heading);
+            console.log("Using cached multi-topic podcast");
             return res.status(200).json({
                 title: cachedPodcast.title,
                 summary: cachedPodcast.summary,
@@ -188,17 +198,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Generate podcast SSML
-        const podcastOutput = await generatePodcastSSML(newsItem);
+        const podcastOutput = await generatePodcastSSML(newsItems);
 
         // Convert SSML to audio
         const audioBuffer = await convertSSMLToAudio(podcastOutput.ssml);
 
         // Create unique identifiers for storage
-        const newsUrlHash = encodeURIComponent(newsItem.source.url);
         const timestamp = Date.now();
 
         // Store audio in Vercel Blob storage
-        const audioFileName = `podcasts/${newsUrlHash}/audio-${timestamp}.mp3`;
+        const audioFileName = `podcasts/multi/${newsItemsHash}/audio-${timestamp}.mp3`;
         const audioBlob = await put(audioFileName, audioBuffer, {
             access: "public",
             token: process.env.BLOB_READ_WRITE_TOKEN as string,
@@ -211,12 +220,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             title: podcastOutput.title,
             summary: podcastOutput.summary,
             audioUrl: audioBlob.url,
-            newsUrl: newsItem.source.url,
-            newsHeading: newsItem.heading,
+            newsItemsCount: newsItems.length,
+            newsHeadings: newsItems.map(item => item.heading),
             generatedAt: new Date().toISOString()
         };
 
-        const metadataFileName = `podcasts/${newsUrlHash}/metadata.json`;
+        const metadataFileName = `podcasts/multi/${newsItemsHash}/metadata.json`;
         await put(metadataFileName, JSON.stringify(metadata), {
             access: "public",
             token: process.env.BLOB_READ_WRITE_TOKEN as string,
