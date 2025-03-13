@@ -13,7 +13,7 @@ const NewsCard: React.FC<Props> = ({ newsItem }) => {
     }[newsItem.source.bias] || "text-rightBias bg-rightBias/10";
 
     return (
-        <div className="flex flex-col justify-between h-[75vh] w-[90vw] bg-[#333333]/50 backdrop-blur-md rounded-xl p-3 mx-auto transform transition-all duration-300 hover:bg-[#333333]/70 animate-fadeIn md:max-w-md border border-[#444444]">
+        <div className="flex flex-col justify-between h-[78vh] w-[90vw] bg-[#333333]/50 backdrop-blur-md rounded-xl p-3 mx-auto transform transition-all duration-300 hover:bg-[#333333]/70 animate-fadeIn md:max-w-md border border-[#444444]">
             <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-textPrimary">{newsItem.heading}</h2>
                 <p className="text-textSecondary text-xs leading-relaxed">{newsItem.summary}</p>
