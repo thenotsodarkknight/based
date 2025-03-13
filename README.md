@@ -10,13 +10,14 @@ The app is fully automated - it fetches news, creates cards and updates storage 
 > Note: This is not meant for production, it's **kind of a weekend project**. For example, the podcast generation feature included storing of the podcast temporarily, which requires additional storage resources that I dont have the funds for - Right now I use Vercel Blob to store the textual content, Audio files require upgrading to a better storage for scalability. Additionally, I use the free tier for NewsAPI which limits the number of articles I can source per day - Reach out to abeen9@gmail.com for **a demo of the full-scale application with all the features**.
 
 <div style="display: flex;">
-  <img style="width: 32%;" src="https://github.com/user-attachments/assets/ba148d86-7457-42fe-ab7b-7bcd1cc5eded" />
-  <img style="width: 32%;" src="https://github.com/user-attachments/assets/55a04a28-7718-43bb-8fe5-6b16243a0c96" />
-  <img style="width: 32%;" src="https://github.com/user-attachments/assets/3e83e8aa-6e2b-485b-9ca1-c7863b1e90f7" />
-<!--   <br></br>Previous Version:<br><br/>
+  <img style="width: 32%;" src="https://github.com/user-attachments/assets/ade19eb1-0668-4d8e-a48b-77497a9c8140" />
+  <img style="width: 32%;" src="https://github.com/user-attachments/assets/fd2450cf-26d2-470b-90c4-ab8494144dea" />
+  <img style="width: 32%;" src="https://github.com/user-attachments/assets/22b56ef7-ed8b-4a38-9f62-a890b44607c2" />
+  
+<!--      <br></br>Previous Version:<br><br/>
   <img src="https://github.com/user-attachments/assets/e5ad5519-47cb-4734-ae18-9ec2002ead10" alt="IMG_9660" style="width: 32%;">
   <img src="https://github.com/user-attachments/assets/fbf2a571-3124-4709-b09d-1d524dea0d19" alt="IMG_9664" style="width: 32%;">
-  <img src="https://github.com/user-attachments/assets/fbf2a571-3124-4709-b09d-1d524dea0d19" alt="IMG_9664" style="width: 32%;">--!>
+  <img src="https://github.com/user-attachments/assets/fbf2a571-3124-4709-b09d-1d524dea0d19" alt="IMG_9664" style="width: 32%;"> -->
 
 </div>
 
