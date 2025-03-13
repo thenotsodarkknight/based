@@ -42,11 +42,11 @@ export default function Home() {
     }, [vibe, model]);
 
     const handlePodcastClick = async () => {
-        if (topics.length === 0) {
-            setShowFeaturePopup(true);
-            setTimeout(() => setShowFeaturePopup(false), 2000);
-            return;
-        }
+        // if (topics.length === 0) {
+        //     setShowFeaturePopup(true);
+        //     setTimeout(() => setShowFeaturePopup(false), 2000);
+        //     return;
+        // }
 
         setPodcastLoading(true);
         try {
