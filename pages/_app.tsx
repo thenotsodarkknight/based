@@ -12,6 +12,7 @@ function MyApp({ Component, pageProps }: AppProps) {
                 <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png" />
                 <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
                 <meta name="theme-color" content="#ffffff" />
+                <link rel="manifest" href="/manifest.json" />
                 <link rel="stylesheet" href="/tailwind.css" />
             </Head>
             <Component {...pageProps} />
