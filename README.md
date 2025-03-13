@@ -7,8 +7,6 @@ The app is fully automated - it fetches news, creates cards and updates storage 
 
 ### [For a demo of the latest deployed version of this Application, click here.](https://uchicago.box.com/s/xygx90537b4ig66ziv0aklqyvk11ohyw)
 
-### [For a demo of the Podcast Generated based on a random News Feed filtered on All Roles, click here.](https://uchicago.box.com/s/mmu34aklffjwrezp5bywgbt8tas81n4j)
-
 > Note: This is not meant for production, it's **kind of a weekend project**. For example, the podcast generation feature included storing of the podcast temporarily, which requires additional storage resources that I dont have the funds for - Right now I use Vercel Blob to store the textual content, Audio files require upgrading to a better storage for scalability. Additionally, I use the free tier for NewsAPI which limits the number of articles I can source per day - Reach out to abeen9@gmail.com for **a demo of the full-scale application with all the features**.
 
 <div style="display: flex;">
