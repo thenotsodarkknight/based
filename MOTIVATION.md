@@ -105,5 +105,3 @@ Sources
     -   Cook, J., Nuccitelli, D., Green, S. A., Richardson, M., Winkler, B., Painting, R., Way, R., Jacobs, P., & Skuce, A. (2013). Quantifying the Consensus on Anthropogenic Global Warming in the Scientific Literature. *Environmental Research Letters*, 8(2), 1--7.
 
     -   van der Linden, S., Leiserowitz, A., Feinberg, G., & Maibach, E. (2015). The Scientific Consensus on Climate Change as a Gateway Belief: Experimental Evidence. *PLoS ONE*, 10(2), e0118489.
-
-    -
