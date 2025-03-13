@@ -3,9 +3,11 @@ based is an LLM-powered news analysis application that fetches articles from div
 
 You cannot filter biases - News from all biases will be equally added to feed.
 
-## [For understanding the motivation for this Application, click here](https://github.com/thenotsodarkknight/based/blob/main/MOTIVATION.md)
+### [For understanding the motivation for this Application, click here.](https://github.com/thenotsodarkknight/based/blob/main/MOTIVATION.md)
 
-> Note: This is not meant for production, it's kind of a weekend project. For example, the podcast generation feature included storing of the podcast temporarily, which requires additional storage resources that I dont have the funds for - Right now I use Vercel Blob to store the textual content, Audio files require upgrading to a better storage for scalability. Additionally, I use the free tier for NewsAPI which limits the number of articles I can source per day - Reach out to abeen9@gmail.com for a demo of the full-scale application with all the features.
+### [For a demo of the latest deployed version of this Application, click here.](https://uchicago.box.com/s/xygx90537b4ig66ziv0aklqyvk11ohyw)
+
+> Note: This is not meant for production, it's **kind of a weekend project**. For example, the podcast generation feature included storing of the podcast temporarily, which requires additional storage resources that I dont have the funds for - Right now I use Vercel Blob to store the textual content, Audio files require upgrading to a better storage for scalability. Additionally, I use the free tier for NewsAPI which limits the number of articles I can source per day - Reach out to abeen9@gmail.com for **a demo of the full-scale application with all the features**.
 
 <div style="display: flex;">
   <img style="width: 32%;" src="https://github.com/user-attachments/assets/16d3d864-1950-440d-9972-37fe86df0e20" />
@@ -123,8 +125,6 @@ Future Enhancements
 -   **Bookmarking:** Save articles to a "Read Later" list.
 
 ---------------
-
-## [Demo - Click Here](https://uchicago.box.com/s/xygx90537b4ig66ziv0aklqyvk11ohyw)
 
 Built with ❤️ by Abeen Bhattacharya
 
