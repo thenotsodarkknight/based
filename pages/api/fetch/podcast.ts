@@ -171,6 +171,9 @@ async function checkCachedPodcast(newsItemsHash: string): Promise<{ exists: bool
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    // Podcast generation is currently disabled
+    res.status(500).json({ error: `Rollbacked Podcast Support due to lack of funds` });
+
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Method not allowed" });
     }
