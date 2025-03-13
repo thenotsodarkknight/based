@@ -188,7 +188,7 @@ export default function Home() {
 
             {podcast && (
                 <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-2xl w-85 mx-4 shadow-2xl">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-2xl w-75 mx-4 shadow-2xl">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-bold text-primary">{podcast.title}</h2>
                             <button
