@@ -188,7 +188,7 @@ export default function Home() {
 
             {podcast && (
                 <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-2xl w-full mx-4 shadow-2xl">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-2xl w-85 mx-4 shadow-2xl">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-bold text-primary">{podcast.title}</h2>
                             <button
@@ -201,7 +201,7 @@ export default function Home() {
                         <p className="text-gray-700 dark:text-gray-300 mb-6">{podcast.summary}</p>
 
                         {/* Custom Audio Player */}
-                        <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg">
+                        <div className="p-1 rounded-lg">
                             {/* Hidden native audio element */}
                             <audio
                                 ref={audioRef}
@@ -211,8 +211,13 @@ export default function Home() {
                                 onEnded={() => setIsPlaying(false)}
                             />
 
+                            <audio controls className="w-full">
+                                <source src={podcast.audioUrl} type="audio/mpeg" />
+                                Your browser does not support the audio element.
+                            </audio>
+
                             {/* Player Controls */}
-                            <div className="flex items-center justify-between mb-3">
+                            {/* <div className="flex items-center justify-between mb-3">
                                 <button
                                     onClick={togglePlay}
                                     className="w-12 h-12 rounded-full flex items-center justify-center bg-primary hover:bg-purple-600 transition-colors"
@@ -232,43 +237,43 @@ export default function Home() {
                                 <div className="flex items-center space-x-4 flex-1 mx-4">
                                     <span className="text-xs text-gray-600 dark:text-gray-400 w-10">{formatTime(currentTime)}</span>
 
-                                    {/* Progress Bar */}
-                                    <div
-                                        className="h-2 flex-1 rounded-full bg-gray-300 dark:bg-gray-700 relative cursor-pointer"
-                                        onClick={handleProgressBarClick}
-                                        ref={progressBarRef}
-                                    >
-                                        <div
-                                            className="absolute h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500"
-                                            style={{ width: `${(currentTime / duration) * 100}%` }}
-                                        ></div>
-                                        <div
-                                            className="absolute h-4 w-4 bg-white dark:bg-gray-200 rounded-full shadow-md -top-1"
-                                            style={{
-                                                left: `calc(${(currentTime / duration) * 100}% - 8px)`,
-                                                display: duration ? 'block' : 'none'
-                                            }}
-                                        ></div>
-                                    </div>
+                            //         {/* Progress Bar 
+                            //         <div
+                            //             className="h-2 flex-1 rounded-full bg-gray-300 dark:bg-gray-700 relative cursor-pointer"
+                            //             onClick={handleProgressBarClick}
+                            //             ref={progressBarRef}
+                            //         >
+                            //             <div
+                            //                 className="absolute h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500"
+                            //                 style={{ width: `${(currentTime / duration) * 100}%` }}
+                            //             ></div>
+                            //             <div
+                            //                 className="absolute h-4 w-4 bg-white dark:bg-gray-200 rounded-full shadow-md -top-1"
+                            //                 style={{
+                            //                     left: `calc(${(currentTime / duration) * 100}% - 8px)`,
+                            //                     display: duration ? 'block' : 'none'
+                            //                 }}
+                            //             ></div>
+                            //         </div>
 
-                                    <span className="text-xs text-gray-600 dark:text-gray-400 w-10">{formatTime(duration)}</span>
-                                </div>
+                            //         <span className="text-xs text-gray-600 dark:text-gray-400 w-10">{formatTime(duration)}</span>
+                            //     </div>
 
-                                <div className="flex items-center w-28">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414-7.072m-2.828 9.9a9 9 0 010-12.728" />
-                                    </svg>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="1"
-                                        step="0.01"
-                                        value={volume}
-                                        onChange={handleVolumeChange}
-                                        className="w-full h-2 ml-2 rounded-lg appearance-none bg-gray-300 dark:bg-gray-700 focus:outline-none"
-                                    />
-                                </div>
-                            </div>
+                            //     <div className="flex items-center w-28">
+                            //         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414-7.072m-2.828 9.9a9 9 0 010-12.728" />
+                            //         </svg>
+                            //         <input
+                            //             type="range"
+                            //             min="0"
+                            //             max="1"
+                            //             step="0.01"
+                            //             value={volume}
+                            //             onChange={handleVolumeChange}
+                            //             className="w-full h-2 ml-2 rounded-lg appearance-none bg-gray-300 dark:bg-gray-700 focus:outline-none"
+                            //         />
+                            //     </div>
+                            // </div> */}
                         </div>
                     </div>
                 </div>
