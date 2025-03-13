@@ -50,7 +50,6 @@ export default function Home() {
 
         setPodcastLoading(true);
         try {
-            // Use the most recent news item
             const newsItem = topics[0];
 
             const response = await fetch('/api/fetch/podcast', {
@@ -69,6 +68,12 @@ export default function Home() {
             setPodcast(podcastData);
         } catch (error) {
             console.error('Error generating podcast:', error);
+            // Use fallback podcast in case of error
+            setPodcast({
+                title: "News Insights Podcast",
+                summary: "A discussion of the latest news and current events with expert analysis and commentary.",
+                audioUrl: "https://6g3cqvnbmy1tir2l.public.blob.vercel-storage.com/podcasts/sample/base_podcast_demo-q2kHMwPFbk0hV2aYgNqnOi8r2paiRm.mp3"
+            });
             setShowFeaturePopup(true);
             setTimeout(() => setShowFeaturePopup(false), 2000);
         } finally {

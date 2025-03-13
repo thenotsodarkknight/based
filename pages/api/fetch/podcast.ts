@@ -158,6 +158,12 @@ async function checkCachedPodcast(newsUrl: string): Promise<{ exists: boolean, u
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+
+    // Remove Podcast Generation feature due to lack of funds
+
+    res.status(500).json({ error: `Podcast Feature Rolled Back` });
+
+
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Method not allowed" });
     }
