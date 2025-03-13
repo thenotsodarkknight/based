@@ -96,22 +96,6 @@ npm run dev
 
 Open <http://localhost:3000> in your browser to see the app.
 
-Project Structure
------------------
-
-```
-based/
-├── pages/
-│   ├── api/
-│   │   ├── classify.ts       # LLM-based bias classification
-│   │   └── news.ts           # NewsAPI integration
-│   ├── article.tsx           # Detailed analysis page
-│   └── index.tsx             # Main news feed with swipeable cards
-├── .env.local                # Environment variables (not tracked)
-├── package.json              # Dependencies and scripts
-└── README.md                 # This file
-```
-
 Development Notes
 -----------------
 
