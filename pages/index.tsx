@@ -291,7 +291,7 @@ export default function Home() {
                 </div>
             )}
 
-            <footer className="fixed bottom-0 opacity-100 bg-gradient-to-b to-backgroundDark from-backgroundLight/20 left-0 right-0 z-10 pb-8 pt-4 px-4 flex justify-center space-x-4" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 24px))' }}>
+            <footer className="fixed bottom-0 opacity-100 bg-gradient-to-b to-backgroundDark from-backgroundLight/20 left-0 right-0 z-10 pb-8 pt-4 px-4 flex justify-center space-x-4" style={{ paddingBottom: 'calc(1.2rem + env(safe-area-inset-bottom, 24px))' }}>
                 <div className="flex flex-col items-center w-full max-w-xs">
                     <button
                         className={`p-3 w-full font-semibold ${podcastLoading ? 'bg-gray-300' : 'bg-white'} text-primary rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm`}
