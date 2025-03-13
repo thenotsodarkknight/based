@@ -11,10 +11,10 @@ based is an LLM-powered news analysis application that fetches articles from div
   <img style="width: 32%;" src="https://github.com/user-attachments/assets/16d3d864-1950-440d-9972-37fe86df0e20" />
   <img style="width: 32%;" src="https://github.com/user-attachments/assets/6298aaa8-bd21-4f32-81ad-269daeb29d19" />
   <img style="width: 32%;" src="https://github.com/user-attachments/assets/753293c4-4012-4a83-a62c-bf727075e0d8" />
-  <br></br>Previous Version:<br><br/>
+<!--   <br></br>Previous Version:<br><br/>
   <img src="https://github.com/user-attachments/assets/e5ad5519-47cb-4734-ae18-9ec2002ead10" alt="IMG_9660" style="width: 32%;">
   <img src="https://github.com/user-attachments/assets/fbf2a571-3124-4709-b09d-1d524dea0d19" alt="IMG_9664" style="width: 32%;">
-  <img src="https://github.com/user-attachments/assets/0d2442ce-89fe-484a-8793-ffb158ec8143" alt="IMG_9665" style="width: 32%;">
+  <img src="https://github.com/user-attachments/assets/0d2442ce-89fe-484a-8793-ffb158ec8143" alt="IMG_9665" style="width: 32%;"> -->
 </div>
 
 Features
