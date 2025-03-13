@@ -118,9 +118,16 @@ async function safeAICall(
 
 async function fetchNewsArticles(query: string, pageSize: number = 3, existingUrls: Set<string>): Promise<any[]> {
     const startTime = Date.now();
+    const fromDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // 36 hours ago
     try {
         const response = await axios.get("https://newsapi.org/v2/everything", {
-            params: { q: query || "news", sortBy: "popularity", pageSize, apiKey: newsapiKey },
+            params: {
+                q: query || "news",
+                sortBy: "popularity",
+                pageSize,
+                from: fromDate, // Add date filter
+                apiKey: newsapiKey
+            },
             timeout: 10000,
         });
         if (Date.now() - startTime > MAX_TOTAL_TIME_MS) throw new Error("Fetch exceeded 5-minute limit");
