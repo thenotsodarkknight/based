@@ -118,14 +118,14 @@ async function safeAICall(
 
 async function fetchNewsArticles(query: string, pageSize: number = 3, existingUrls: Set<string>): Promise<any[]> {
     const startTime = Date.now();
-    const fromDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // 36 hours ago
+    const fromDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // 24 hours ago
     try {
         const response = await axios.get("https://newsapi.org/v2/everything", {
             params: {
                 q: query || "news",
                 sortBy: "popularity",
                 pageSize,
-                from: fromDate, // Add date filter
+                from: fromDate,
                 apiKey: newsapiKey
             },
             timeout: 10000,
