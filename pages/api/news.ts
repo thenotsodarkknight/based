@@ -31,6 +31,7 @@ const AIOutputJsonSchema = {
 
 const openaiApiKey = process.env.OPENAI_API_KEY;
 const newsapiKey = process.env.NEWSAPI_KEY;
+const newsdataApiKey = process.env.NEWSDATA_API_KEY; // Add the new API key
 
 let apiCallCount = 0;
 const MAX_API_CALLS = 300;
@@ -119,6 +120,8 @@ async function safeAICall(
 async function fetchNewsArticles(query: string, pageSize: number = 3, existingUrls: Set<string>): Promise<any[]> {
     const startTime = Date.now();
     const fromDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // 24 hours ago
+
+    // First try NewsAPI
     try {
         const response = await axios.get("https://newsapi.org/v2/everything", {
             params: {
@@ -135,15 +138,60 @@ async function fetchNewsArticles(query: string, pageSize: number = 3, existingUr
         const articles = response.data.articles || [];
         // Filter out articles whose URLs are already stored
         const newArticles = articles.filter(article => !existingUrls.has(article.url));
-        console.log(`Fetched ${articles.length} articles, ${newArticles.length} are new`);
+        console.log(`Fetched ${articles.length} articles from NewsAPI, ${newArticles.length} are new`);
+        if (newArticles.length === 0) {
+            throw new Error("No new articles fetched from NewsAPI, falling back to Newsdata.io");
+        }
         return newArticles;
     } catch (error: any) {
-        if (error.response && error.response.status === 429) {
-            console.error("Error fetching articles from NewsAPI: Too Many Requests");
-            throw new Error("429 Too Many Requests");
+        console.error("Error fetching from NewsAPI:", error.message);
+
+        // Fallback to Newsdata.io
+        try {
+            console.log("Falling back to Newsdata.io");
+            const response = await axios.get("https://newsdata.io/api/1/latest", {
+                params: {
+                    q: query || "news",
+                    language: "en",
+                    size: pageSize,
+                    apikey: newsdataApiKey
+                },
+                timeout: 10000,
+            });
+
+            if (Date.now() - startTime > MAX_TOTAL_TIME_MS) throw new Error("Fetch exceeded 5-minute limit");
+
+            if (!response.data.results || !Array.isArray(response.data.results)) {
+                throw new Error("Invalid response from Newsdata.io");
+            }
+
+            // Map Newsdata.io format to match NewsAPI format
+            const articles = response.data.results.map((item: any) => ({
+                url: item.link,
+                title: item.title,
+                description: item.description,
+                content: item.content || item.description,
+                publishedAt: item.pubDate,
+                source: {
+                    name: item.source_id || "Newsdata.io"
+                }
+            }));
+
+            // Filter out articles whose URLs are already stored
+            const newArticles = articles.filter(article => !existingUrls.has(article.url));
+            console.log(`Fetched ${articles.length} articles from Newsdata.io, ${newArticles.length} are new`);
+            return newArticles;
+        } catch (fallbackError: any) {
+            console.error("Error fetching from Newsdata.io:", fallbackError.message);
+
+            // If the original error was a 429, propagate that
+            if (error.response && error.response.status === 429) {
+                throw new Error("429 Too Many Requests");
+            }
+
+            // Otherwise throw a general error
+            throw new Error(`News API errors: ${error.message}, Newsdata.io error: ${fallbackError.message}`);
         }
-        console.error("Error fetching articles from NewsAPI:", error.message);
-        throw new Error(`NewsAPI error: ${error.message}`);
     }
 }
 
@@ -266,24 +314,96 @@ async function fetchAllCachedNews(): Promise<NewsTopic> {
     }
 }
 
+// Add this new function to fetch cached news by vibe
+async function fetchCachedNewsByVibe(vibe: string): Promise<NewsTopic> {
+    const startTime = Date.now();
+    try {
+        const vibePrefix = `news/personas/${encodeURIComponent(vibe)}/`;
+        const { blobs } = await list({
+            prefix: vibePrefix,
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+        });
+
+        if (!blobs || blobs.length === 0) {
+            return [];
+        }
+
+        const newsItems = await Promise.all(
+            blobs.map(async (blob: BlobMetadata) => {
+                const response = await fetch(blob.url);
+                return (await response.json()) as NewsItem;
+            })
+        );
+
+        const sortedItems = newsItems.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
+
+        if (Date.now() - startTime > MAX_TOTAL_TIME_MS) throw new Error("Vibe cache fetch exceeded 5-minute limit");
+        return sortedItems;
+    } catch (error: any) {
+        console.error(`Error fetching cached news for vibe ${vibe}:`, error);
+        return [];
+    }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     apiCallCount = 0;
     const startTime = Date.now();
 
     try {
-        const { vibe = "", model = DEFAULT_MODEL } = req.query;
+        const { vibe = "", model = DEFAULT_MODEL, updateAllVibes } = req.query;
+
+        if (updateAllVibes === 'true') {
+            // Logic to update news for all vibes
+            const vibes = [
+                "Tech Enthusiast",
+                "Politician",
+                "Athlete",
+                "Influencer",
+                "Actor",
+                "Business Leader",
+                "Entrepreneur",
+                "Journalist",
+                "Academic",
+                "Lawyer",
+                "Activist",
+                "Economist",
+                "Cultural Icon",
+                "Celebrity",
+                "Artist",
+            ];
+
+            for (const currentVibe of vibes) {
+                // Get existing cached news to determine already stored URLs
+                const cachedVibeNews = await fetchCachedNewsByVibe(currentVibe);
+                const existingUrls = new Set(cachedVibeNews.map(item => item.source.url));
+
+                // Fetch new articles for the current vibe
+                const articles = await fetchNewsArticles(currentVibe, 5, existingUrls);
+
+                if (articles.length) {
+                    await processArticles(articles, model as string, currentVibe);
+                }
+            }
+
+            return res.status(200).json({ message: "News updated for all vibes." });
+            // End of logic to update news for all vibes
+        }
+
         if (!AI_MODELS.openai.includes(model as string)) {
             throw new Error(`Unsupported model: ${model}. Use one of ${JSON.stringify(AI_MODELS.openai)}`);
         }
 
         let newsItems: NewsTopic;
+
         // Get existing cached news to determine already stored URLs
         const cachedNews = await fetchAllCachedNews();
         const existingUrls = new Set(cachedNews.map(item => item.source.url));
 
         if (!vibe || vibe.toString().trim() === "") {
+
+            // No vibe filter, return all cached news
             newsItems = cachedNews;
-            if (newsItems.length === 0 || newsItems.length < 50) { // Adjust threshold as needed
+            if (newsItems.length === 0 || newsItems.length < 150) { // Adjust threshold as needed
                 console.warn("Insufficient cached news, fetching new articles.");
                 try {
                     const newArticles = await fetchNewsArticles("news", 3, existingUrls);
@@ -295,13 +415,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
             }
         } else {
-            const query = vibe.toString();
-            const articles = await fetchNewsArticles(query, 5, existingUrls);
-            if (!articles.length) {
-                console.warn("No new articles fetched for query:", query);
-                return res.status(200).json(cachedNews); // Return cached if no new articles
+            // Vibe filter is provided - first check for cached news with this vibe
+            const vibeString = vibe.toString();
+            const cachedVibeNews = await fetchCachedNewsByVibe(vibeString);
+
+            if (cachedVibeNews.length > 0) {
+                console.log(`Found ${cachedVibeNews.length} cached news items for vibe: ${vibeString}`);
+                return res.status(200).json(cachedVibeNews);
             }
-            newsItems = await processArticles(articles, model as string, vibe as string);
+
+            // No cached vibe news, fetch new articles
+            console.log(`No cached news for vibe: ${vibeString}, fetching new articles`);
+            const articles = await fetchNewsArticles(vibeString, 5, existingUrls);
+
+            if (!articles.length) {
+                console.warn("No new articles fetched for query:", vibeString);
+                return res.status(200).json(cachedNews); // Return all cached news if no new articles
+            }
+
+            newsItems = await processArticles(articles, model as string, vibeString);
         }
 
         if (Date.now() - startTime > MAX_TOTAL_TIME_MS) {
