@@ -2,39 +2,58 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { NewsItem, NewsTopic, BlobMetadata } from "../../types/news";
 import { list, del } from "@vercel/blob";
 
-const LEVENSHTEIN_THRESHOLD = 0.8; // Adjust as needed
+const LEVENSHTEIN_THRESHOLD = 0.7; // Adjust as needed
 
-function levenshteinDistance(a: string, b: string): number {
-    const matrix: number[][] = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(0));
+function optimizedLevenshteinDistance(a: string, b: string): number {
+    const lenA = a.length;
+    const lenB = b.length;
 
+    // If one string is empty, the distance is the length of the other
+    if (lenA === 0) return lenB;
+    if (lenB === 0) return lenA;
+
+    // Swap to ensure we iterate over the shorter string as columns 
+    // (slightly faster in practice).
+    if (lenA > lenB) {
+        [a, b] = [b, a];
+    }
+
+    // Now 'a' is the shorter string
+    var current = new Array(a.length + 1).fill(0);
+    var previous = new Array(a.length + 1).fill(0);
+
+    // Initialize the current row
     for (let i = 0; i <= a.length; i++) {
-        matrix[i][0] = i;
+        current[i] = i;
     }
 
-    for (let j = 0; j <= b.length; j++) {
-        matrix[0][j] = j;
-    }
+    for (let j = 1; j <= b.length; j++) {
+        // Swap current and previous rows
+        [previous, current] = [current, previous];
 
-    for (let i = 1; i <= a.length; i++) {
-        for (let j = 1; j <= b.length; j++) {
+        // First cell of each row is the edit distance 
+        // from empty string to b[0..j-1]
+        current[0] = j;
+
+        for (let i = 1; i <= a.length; i++) {
             const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-            matrix[i][j] = Math.min(
-                matrix[i - 1][j] + 1, // deletion
-                matrix[i][j - 1] + 1, // insertion
-                matrix[i - 1][j - 1] + cost // substitution
+            current[i] = Math.min(
+                previous[i] + 1,       // deletion
+                current[i - 1] + 1,    // insertion
+                previous[i - 1] + cost // substitution
             );
         }
     }
-
-    return matrix[a.length][b.length];
+    return current[a.length];
 }
 
 function similarity(a: string, b: string): number {
     const maxLength = Math.max(a.length, b.length);
-    if (maxLength === 0) return 1.0; // Both strings are empty
-    const distance = levenshteinDistance(a, b);
+    if (maxLength === 0) return 1.0;  // Both strings empty
+    const distance = optimizedLevenshteinDistance(a, b);
     return 1 - distance / maxLength;
 }
+
 
 interface NewsItemWithBlobUrl extends NewsItem {
     _blobUrl?: string; // Track the actual blob URL for deletion
