@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Call Update News API
         run: |
-          curl -X GET https://based.layzekid.com/api/dedupe
+          curl -X POST https://based.layzekid.com/api/dedupe
