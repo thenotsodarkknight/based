@@ -45,6 +45,47 @@ const DEFAULT_MODEL = "o3-mini";
 
 const openai = new OpenAI({ apiKey: openaiApiKey });
 
+// Add a list of domains that OpenAI can't access
+const BLOCKED_DOMAINS = [
+    "auburnpub.com",
+    "news.google.com",
+    "news.yahoo.com",
+    "ft.com",
+    "nytimes.com",
+    "wsj.com",
+    "bloomberg.com",
+    "economist.com",
+    "washingtonpost.com",
+    "latimes.com",
+    "theguardian.com",
+    "reuters.com",
+    "apnews.com",
+    "foreignpolicy.com",
+    "theatlantic.com",
+    "newyorker.com",
+    "forbes.com",
+    "cnbc.com",
+    "businessinsider.com",
+    "nature.com",
+    "sciencemag.org",
+    "cell.com",
+    "pnas.org",
+    "thelancet.com",
+    "nejm.org",
+    "jamanetwork.com",
+    "bmj.com",
+    "ieeexplore.ieee.org",
+    "dl.acm.org",
+    "pubs.acs.org",
+    "onlinelibrary.wiley.com",
+    "journals.sagepub.com",
+    "tandfonline.com",
+    "link.springer.com",
+    "academic.oup.com",
+    "sciencedirect.com",
+]
+
+
 async function safeAICall(
     model: string,
     prompt: string,
@@ -152,9 +193,14 @@ async function fetchNewsArticles(query: string, pageSize: number = 3, existingUr
             const response = await axios.get("https://newsdata.io/api/1/latest", {
                 params: {
                     q: query || "news",
-                    language: "en",
-                    size: pageSize,
-                    apikey: newsdataApiKey
+                    language: "en",        // English only
+                    country: "us",         // US news only
+                    size: pageSize * 2,    // Request more since we'll filter some
+                    apikey: newsdataApiKey,
+                    excludedomain: BLOCKED_DOMAINS.slice(0, 5).join(','), // API allows max 5 domains
+                    removeduplicate: 1,    // Remove duplicate articles
+                    prioritydomain: "top", // High-quality sources
+                    image: 1               // Only articles with images
                 },
                 timeout: 10000,
             });
@@ -166,16 +212,19 @@ async function fetchNewsArticles(query: string, pageSize: number = 3, existingUr
             }
 
             // Map Newsdata.io format to match NewsAPI format
-            const articles = response.data.results.map((item: any) => ({
-                url: item.link,
-                title: item.title,
-                description: item.description,
-                content: item.content || item.description,
-                publishedAt: item.pubDate,
-                source: {
-                    name: item.source_id || "Newsdata.io"
-                }
-            }));
+            const articles = response.data.results
+                // Filter out any remaining blocked domains that couldn't fit in the excludedomain parameter
+                .filter(item => !BLOCKED_DOMAINS.some(domain => item.link?.includes(domain)))
+                .map((item: any) => ({
+                    url: item.link,
+                    title: item.title,
+                    description: item.description,
+                    content: item.content || item.description,
+                    publishedAt: item.pubDate,
+                    source: {
+                        name: item.source_id || "Newsdata.io"
+                    }
+                }));
 
             // Filter out articles whose URLs are already stored
             const newArticles = articles.filter(article => !existingUrls.has(article.url));
@@ -476,7 +525,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (Date.now() - startTime > MAX_TOTAL_TIME_MS) {
             throw new Error("Total processing time exceeded 5-minute limit");
         }
-        res.status(200).json(newsItems);
+        res.status(200).json(newsItems.filter(item => !BLOCKED_DOMAINS.some(domain => item.source.url?.includes(domain))));
     } catch (error: any) {
         console.error("Error processing news:", error);
         if (error.message === "429 Too Many Requests") {
