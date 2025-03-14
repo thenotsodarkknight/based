@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { NewsItem, NewsTopic } from "../../types/news";
+import { NewsItem, NewsTopic, BlobMetadata } from "../../types/news";
 import { list, del } from "@vercel/blob";
 
 const LEVENSHTEIN_THRESHOLD = 0.8; // Adjust as needed
@@ -36,13 +36,17 @@ function similarity(a: string, b: string): number {
     return 1 - distance / maxLength;
 }
 
-async function getAllNewsItems(): Promise<NewsItem[]> {
+interface NewsItemWithBlobUrl extends NewsItem {
+    _blobUrl?: string; // Track the actual blob URL for deletion
+}
+
+async function getAllNewsItems(): Promise<NewsItemWithBlobUrl[]> {
     const { blobs } = await list({
         prefix: "news/global/",
         token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
-    const newsItems: NewsItem[] = [];
+    const newsItems: NewsItemWithBlobUrl[] = [];
     for (const blob of blobs) {
         try {
             const response = await fetch(blob.url);
@@ -51,7 +55,11 @@ async function getAllNewsItems(): Promise<NewsItem[]> {
                 continue;
             }
             const newsItem: NewsItem = await response.json();
-            newsItems.push(newsItem);
+            // Add the blob URL to the item for deletion later
+            newsItems.push({
+                ...newsItem,
+                _blobUrl: blob.url
+            });
         } catch (error: any) {
             console.error(`Error processing blob ${blob.url}:`, error);
         }
@@ -61,6 +69,7 @@ async function getAllNewsItems(): Promise<NewsItem[]> {
 
 async function deleteBlob(blobUrl: string): Promise<void> {
     try {
+        // Delete the blob using the actual URL, not the path
         await del(blobUrl, { token: process.env.BLOB_READ_WRITE_TOKEN });
         console.log(`Deleted blob: ${blobUrl}`);
     } catch (error: any) {
@@ -90,18 +99,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
                     // Delete the older one
                     const itemToDelete = new Date(item1.lastUpdated) < new Date(item2.lastUpdated) ? item1 : item2;
-                    const blobToDelete = `news/global/${encodeURIComponent(itemToDelete.source.url)}.json`;
+
+                    // Use the actual blob URL we stored earlier
+                    const blobUrl = itemToDelete._blobUrl;
+
+                    if (!blobUrl) {
+                        console.error(`No blob URL found for item: ${itemToDelete.source.url}`);
+                        continue;
+                    }
 
                     try {
-                        await deleteBlob(blobToDelete);
+                        await deleteBlob(blobUrl);
                         deletedCount++;
+
+                        // Also delete the corresponding vibe entries if they exist
+                        try {
+                            const vibePrefix = `news/personas/`;
+                            const { blobs: relatedBlobs } = await list({
+                                prefix: vibePrefix,
+                                token: process.env.BLOB_READ_WRITE_TOKEN,
+                            });
+
+                            // Find and delete any vibe-specific versions
+                            const relatedVibeBlobs = relatedBlobs.filter(blob =>
+                                blob.pathname.includes(encodeURIComponent(itemToDelete.source.url))
+                            );
+
+                            for (const vibeBlob of relatedVibeBlobs) {
+                                await del(vibeBlob.url, { token: process.env.BLOB_READ_WRITE_TOKEN });
+                                console.log(`Deleted related vibe blob: ${vibeBlob.url}`);
+                            }
+                        } catch (vibeError) {
+                            console.error("Error cleaning up vibe entries:", vibeError);
+                        }
 
                         // Remove the deleted item from newsItems to avoid further comparisons
                         newsItems.splice(newsItems.indexOf(itemToDelete), 1);
                         j--; // Adjust index since we removed an element
                     } catch (deleteError: any) {
                         console.error(`Failed to delete blob for ${itemToDelete.source.url}:`, deleteError);
-                        return res.status(500).json({ message: `Failed to delete blob: ${deleteError.message}` });
                     }
                 }
             }
