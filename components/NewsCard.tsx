@@ -36,7 +36,8 @@ const NewsCard: React.FC<Props> = ({ newsItem }) => {
                 </div>
             </div>
             <div className="text-xs text-textSecondary">
-                <strong>Last Updated:</strong> {new Date(new Date(newsItem.lastUpdated).setDate(new Date(newsItem.lastUpdated).getDate() + 2)).toDateString()}
+                <strong>Last Updated:</strong> {new Date(newsItem.lastUpdated).toDateString()}
+                {/* <strong>Last Updated:</strong> {new Date(new Date(newsItem.lastUpdated).setDate(new Date(newsItem.lastUpdated).getDate() + 2)).toDateString()} */}
             </div>
         </div>
     );
