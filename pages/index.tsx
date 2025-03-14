@@ -177,7 +177,7 @@ export default function Home() {
 
             {loading ? (
                 <div className="flex items-center justify-center h-screen">
-                    <p className="text-textSecondary text-lg animate-pulse">Fetching & Processing Lastest News...</p>
+                    <p className="text-textSecondary text-lg animate-pulse">Fetching Lastest News<br></br> For You...</p>
                 </div>
             ) : topics.length ? (
                 <NewsFeed topics={topics} isMobile={isMobile} />
