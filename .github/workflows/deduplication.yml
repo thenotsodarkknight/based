@@ -1,0 +1,14 @@
+name: Update News
+
+on:
+  schedule:
+    - cron: "0 * * * *" # Runs every hour
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  update-news:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Update News API
+        run: |
+          curl -X GET https://based.layzekid.com/api/dedupe
