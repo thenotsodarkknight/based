@@ -125,8 +125,6 @@ Future Enhancements
 -   **User Feedback:** Add thumbs-up/down for bias classifications to refine accuracy.
 
 -   **Dark Mode:** Toggle between light and dark themes.
-
--   **Optimized News Fetching:** Currently, New News is fetched everytime the app load -> More usage, More news -> To improve reliability, create a cron job in vercel to periodically bulk fetch and process new news articles.
   
 -   **Bookmarking:** Save articles to a "Read Later" list.
 
