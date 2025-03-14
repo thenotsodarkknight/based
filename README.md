@@ -11,8 +11,8 @@ The app is fully automated - it fetches news, creates cards and updates storage 
 
 <div style="display: flex;">
   <img style="width: 24%;" src="https://github.com/user-attachments/assets/ade19eb1-0668-4d8e-a48b-77497a9c8140" />
-  <img style="width: 24%;" src="https://github.com/user-attachments/assets/d44db414-68a2-4101-8045-57278da353d0" />
-<!--   <img style="width: 24%;" src="https://github.com/user-attachments/assets/d7090d13-cacf-4120-a733-9dfc5835b644" /> -->
+  <img style="width: 24%;" src="https://github.com/user-attachments/assets/1c5e27d5-ebdf-4130-af99-9a119d99e00b" />
+<!--   <img style="width: 24%;" src="https://github.com/user-attachments/assets/d7090d13-cacf-4120-a733-9dfc5835b644" -->
   <img style="width: 24%;" src="https://github.com/user-attachments/assets/fd2450cf-26d2-470b-90c4-ab8494144dea" />
   <img style="width: 24%;" src="https://github.com/user-attachments/assets/22b56ef7-ed8b-4a38-9f62-a890b44607c2" />
 
@@ -31,6 +31,8 @@ Features
 -   **Bias Classification:** Automatically classifies articles as left-leaning, right-leaning, or neutral using a hybrid approach (source ratings + LLM analysis).
 
 -   **Balanced Summaries:** Generates neutral summaries by synthesizing multiple perspectives, even when neutral sources are absent.
+
+-   **Automated News Updation & Deduplication**: Automatically fetches new news across personas (hourly), and removes similar articles from the storage (every 5 minutes)
 
 -   **"Roles" Filter:** Customize the news feed based on personas (e.g., "Tech Enthusiast," "Athlete," "Influencer," "Actor").
 
