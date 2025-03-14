@@ -411,7 +411,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 "Athlete",
                 "Influencer",
                 "Actor",
-                "Business Leader",
+                "Musician",
                 "Entrepreneur",
                 "Journalist",
                 "Academic",
