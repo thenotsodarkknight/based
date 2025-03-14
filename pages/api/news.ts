@@ -348,6 +348,7 @@ async function fetchCachedNewsByVibe(vibe: string): Promise<NewsTopic> {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     apiCallCount = 0;
     const startTime = Date.now();
+    const MAX_ARTICLES_TO_RETURN = 20; // Maximum number of articles to return
 
     try {
         const { vibe = "", model = DEFAULT_MODEL, updateAllVibes } = req.query;
@@ -386,7 +387,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
 
             return res.status(200).json({ message: "News updated for all vibes." });
-            // End of logic to update news for all vibes
         }
 
         if (!AI_MODELS.openai.includes(model as string)) {
@@ -397,30 +397,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Get existing cached news to determine already stored URLs
         const cachedNews = await fetchAllCachedNews();
+
+        // Check if we need to fetch new articles based on the age of the latest article
+        const shouldFetchNewArticles = () => {
+            if (cachedNews.length === 0) return true;
+
+            // Get the most recent article date
+            const latestArticleDate = new Date(cachedNews[0].lastUpdated);
+            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+            // Only fetch if latest article is older than 1 day
+            return latestArticleDate < oneDayAgo;
+        };
+
         const existingUrls = new Set(cachedNews.map(item => item.source.url));
 
         if (!vibe || vibe.toString().trim() === "") {
-
             // No vibe filter, return all cached news
             newsItems = cachedNews;
-            if (newsItems.length === 0 || newsItems.length < 150) { // Adjust threshold as needed
-                console.warn("Insufficient cached news, fetching new articles.");
+
+            // Only fetch new articles if the latest one is over 1 day old or if we have too few articles
+            if ((shouldFetchNewArticles() || newsItems.length < 50) && newsItems.length < 150) {
+                console.warn("Fetching new articles - latest news is over a day old or insufficient articles.");
                 try {
                     const newArticles = await fetchNewsArticles("news", 3, existingUrls);
-                    newsItems = await processArticles(newArticles, model as string);
-                    newsItems = [...cachedNews, ...newsItems]; // Combine with existing if desired
+                    const newNewsItems = await processArticles(newArticles, model as string);
+                    newsItems = [...newNewsItems, ...cachedNews]; // Put new articles first
                 }
                 catch (error: any) {
-                    newsItems = cachedNews;
+                    console.error("Error fetching new articles:", error);
+                    // Continue with existing cached news
                 }
             }
+
+            // Sort by lastUpdated and limit to MAX_ARTICLES_TO_RETURN
+            newsItems = newsItems
+                .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+                .slice(0, MAX_ARTICLES_TO_RETURN);
         } else {
             // Vibe filter is provided - first check for cached news with this vibe
             const vibeString = vibe.toString();
-            const cachedVibeNews = await fetchCachedNewsByVibe(vibeString);
+            let cachedVibeNews = await fetchCachedNewsByVibe(vibeString);
 
             if (cachedVibeNews.length > 0) {
                 console.log(`Found ${cachedVibeNews.length} cached news items for vibe: ${vibeString}`);
+                // Sort by lastUpdated and limit to MAX_ARTICLES_TO_RETURN
+                cachedVibeNews = cachedVibeNews
+                    .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+                    .slice(0, MAX_ARTICLES_TO_RETURN);
                 return res.status(200).json(cachedVibeNews);
             }
 
@@ -430,10 +454,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             if (!articles.length) {
                 console.warn("No new articles fetched for query:", vibeString);
-                return res.status(200).json(cachedNews); // Return all cached news if no new articles
+                // Return all cached news sorted and limited if no new articles
+                return res.status(200).json(
+                    cachedNews
+                        .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+                        .slice(0, MAX_ARTICLES_TO_RETURN)
+                );
             }
 
             newsItems = await processArticles(articles, model as string, vibeString);
+
+            // Add some general cached news if we don't have enough vibe-specific articles
+            if (newsItems.length < MAX_ARTICLES_TO_RETURN) {
+                newsItems = [...newsItems, ...cachedNews];
+                newsItems = newsItems
+                    .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+                    .slice(0, MAX_ARTICLES_TO_RETURN);
+            }
         }
 
         if (Date.now() - startTime > MAX_TOTAL_TIME_MS) {
@@ -446,7 +483,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             try {
                 const cachedNews = await fetchAllCachedNews();
                 if (cachedNews.length > 0) {
-                    res.status(429).json(cachedNews);
+                    // Sort and limit to latest 150 articles
+                    const sortedCachedNews = cachedNews
+                        .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+                        .slice(0, MAX_ARTICLES_TO_RETURN);
+                    res.status(429).json(sortedCachedNews);
                 } else {
                     res.status(429).json({ error: "Too Many Requests" });
                 }
