@@ -34,18 +34,19 @@ export default function Home() {
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
 
+    const fetchNews = async () => {
+        setLoading(true);
+        const res = await fetch(`/api/news?vibe=${encodeURIComponent(vibe)}&model=${encodeURIComponent(model)}`);
+        const data: NewsTopic = await res.json();
+        if (res.status === 429) {
+            setShowPopup(true);
+            setTimeout(() => setShowPopup(false), 4000); // Hide popup after 4 seconds
+        }
+        setTopics(data);
+        setLoading(false);
+    };
+
     useEffect(() => {
-        const fetchNews = async () => {
-            setLoading(true);
-            const res = await fetch(`/api/news?vibe=${encodeURIComponent(vibe)}&model=${encodeURIComponent(model)}`);
-            const data: NewsTopic = await res.json();
-            if (res.status === 429) {
-                setShowPopup(true);
-                setTimeout(() => setShowPopup(false), 4000); // Hide popup after 4 seconds
-            }
-            setTopics(data);
-            setLoading(false);
-        };
         fetchNews();
     }, [vibe, model]);
 
@@ -148,7 +149,7 @@ export default function Home() {
     return (
         <div className="min-h-screen relative bg-gradient-to-b from-backgroundDark via-[80%] to-backgroundLight">
             <nav className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-backgroundDark/80 backdrop-blur-sm" style={{ zIndex: 1 }}>
-                <h1 className="text-xl p-1 font-bold text-primary" onClick={() => setVibe("")}>based</h1>
+                <h1 className="text-xl p-1 font-bold text-primary" onClick={() => fetchNews}>based</h1>
                 <select
                     onChange={(e) => setVibe(e.target.value)}
                     className="p-2 bg-primary font-semibold text-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm"

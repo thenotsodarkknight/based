@@ -2,11 +2,13 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/pagination";
 import NewsCard from "./NewsCard";
+import PullToRefreshWrapper from "./PullToRefreshWrapper";
 import { NewsTopic } from "../types/news"; // NewsTopic is now an array of NewsItem
 
 interface Props {
     topics: NewsTopic; // Array of NewsItem
     isMobile: boolean;
+    // onRefresh?: () => Promise<void>;
 }
 
 const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
@@ -22,6 +24,7 @@ const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
 
     return (
         <div className="h-screen w-full pt-20" >
+            {/* <PullToRefreshWrapper onRefresh={onRefresh ?? (() => Promise.resolve())}> */}
             <Swiper
                 direction="vertical"
                 pagination={{ clickable: true }}
@@ -34,6 +37,7 @@ const NewsFeed: React.FC<Props> = ({ topics, isMobile }) => {
                     </SwiperSlide>
                 ))}
             </Swiper>
+            {/* </PullToRefreshWrapper> */}
         </div>
     );
 };

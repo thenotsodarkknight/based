@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { NewsItem, NewsTopic, BlobMetadata } from "../../types/news";
 import { list, del } from "@vercel/blob";
 
-const LEVENSHTEIN_THRESHOLD = 0.7; // Adjust as needed
+const LEVENSHTEIN_THRESHOLD = 0.6; // Adjust as needed
 
 function optimizedLevenshteinDistance(a: string, b: string): number {
     const lenA = a.length;
