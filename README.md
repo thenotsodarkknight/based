@@ -22,6 +22,11 @@ The app is fully automated - it fetches news, creates cards and updates storage 
   <img src="https://github.com/user-attachments/assets/fbf2a571-3124-4709-b09d-1d524dea0d19" alt="IMG_9664" style="width: 32%;"> -->
 
 </div>
+<br></br>
+
+> Deployed Version Down Currently: Exhausted storage capacity for free tier:
+> <img width="1260" alt="Screenshot 2025-03-18 at 5 01 58 PM" src="https://github.com/user-attachments/assets/f1a5e82a-5d63-42e7-9320-3d549596a9d5" />
+
 
 Features
 --------
@@ -59,6 +64,8 @@ Tech Stack
 
 -   **Utilities:** node-readability (full-text extraction), zod (schema validation)
 
+
+
 Prerequisites
 -------------
 
@@ -71,6 +78,7 @@ Prerequisites
     -   NewsAPI key
 
     -   OpenAI key
+ 
 
 Installation
 ------------
