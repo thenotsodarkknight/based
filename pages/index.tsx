@@ -177,13 +177,15 @@ export default function Home() {
 
             {loading ? (
                 <div className="flex items-center justify-center h-screen">
-                    <p className="text-textSecondary text-lg animate-pulse">Fetching Lastest News...</p>
+                    <p className="text-textSecondary text-lg animate-pulse">Vercel Storage Limit Reached</p>
+{/*                 <p className="text-textSecondary text-lg animate-pulse">Fetching Latest News</p> */}
                 </div>
             ) : topics.length ? (
                 <NewsFeed topics={topics} isMobile={isMobile} />
             ) : (
                 <div className="flex items-center justify-center h-screen">
-                    <p className="text-textSecondary text-lg">No news found.</p>
+                    <p className="text-textSecondary text-lg">Vercel Storage Limit Reached.</p>
+{/*                 <p className="text-textSecondary text-lg">No News Found.</p> */}
                 </div>
             )}
 
